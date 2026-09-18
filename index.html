@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Registro de Avance de Proyectos</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-6">
+  <div class="max-w-4xl mx-auto bg-white p-8 rounded-xl shadow-md">
+    <h1 class="text-2xl font-bold mb-6 text-gray-800 border-b pb-2">
+      Reporte de Avances de Proyectos de Inversión
+    </h1>
+
+    <form id="proyectoForm" class="space-y-6">
+      <!-- Datos Generales -->
+      <div class="space-y-4">
+        <h2 class="text-lg font-semibold text-blue-800">1. Datos Generales</h2>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Programa / Proyecto</label>
+          <input type="text" id="programa" required class="mt-1 w-full p-2 border rounded-md">
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700">CUI / Cód. SNIP</label>
+            <input type="text" id="cui" required class="mt-1 w-full p-2 border rounded-md">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700">Monto Inversión Actualizado (S/)</label>
+            <input type="number" step="0.01" id="montoInversion" required class="mt-1 w-full p-2 border rounded-md">
+          </div>
+        </div>
+      </div>
+
+      <!-- Estado Situacional -->
+      <div class="space-y-4">
+        <h2 class="text-lg font-semibold text-blue-800">2. Estado Situacional</h2>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Resumen / Estado Situacional</label>
+          <textarea id="estadoSituacional" rows="3" required class="mt-1 w-full p-2 border rounded-md"></textarea>
+        </div>
+      </div>
+
+      <!-- Hitos y Riesgos -->
+      <div class="space-y-4">
+        <h2 class="text-lg font-semibold text-blue-800">3. Hitos y Riesgos</h2>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Hitos Programados</label>
+          <textarea id="hitos" rows="3" class="mt-1 w-full p-2 border rounded-md"></textarea>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">Riesgo Potencial</label>
+          <textarea id="riesgos" rows="2" class="mt-1 w-full p-2 border rounded-md"></textarea>
+        </div>
+      </div>
+
+      <button type="submit" class="w-full bg-blue-600 text-white py-3 rounded-md font-semibold hover:bg-blue-700 transition">
+        Guardar Registro
+      </button>
+    </form>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
