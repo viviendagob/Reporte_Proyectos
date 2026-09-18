@@ -1,65 +1,202 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Registro de Avance de Proyectos</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reporte Semanal de Avances - UIDUS PNC</title>
+<link rel="stylesheet" href="styles.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pptxgenjs/3.12.0/pptxgen.bundle.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 </head>
-<body class="bg-gray-100 p-6">
-  <div class="max-w-4xl mx-auto bg-white p-8 rounded-xl shadow-md">
-    <h1 class="text-2xl font-bold mb-6 text-gray-800 border-b pb-2">
-      Reporte de Avances de Proyectos de Inversión
-    </h1>
+<body>
 
-    <form id="proyectoForm" class="space-y-6">
-      <!-- Datos Generales -->
-      <div class="space-y-4">
-        <h2 class="text-lg font-semibold text-blue-800">1. Datos Generales</h2>
-        <div>
-          <label class="block text-sm font-medium text-gray-700">Programa / Proyecto</label>
-          <input type="text" id="programa" required class="mt-1 w-full p-2 border rounded-md">
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700">CUI / Cód. SNIP</label>
-            <input type="text" id="cui" required class="mt-1 w-full p-2 border rounded-md">
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700">Monto Inversión Actualizado (S/)</label>
-            <input type="number" step="0.01" id="montoInversion" required class="mt-1 w-full p-2 border rounded-md">
-          </div>
-        </div>
+<div id="demoBanner" class="demo-banner hidden">
+  Modo demostración: los datos se guardan solo en este navegador. Configure <code>API_URL</code> en <code>config.js</code> para usar el registro compartido.
+</div>
+
+<!-- LOGIN -->
+<div id="loginView" class="login">
+  <div class="card">
+    <h1 style="font-size:1.25rem">Reporte semanal de avances</h1>
+    <p class="muted small" style="margin:6px 0 18px">Unidad de Inversiones en Desarrollo Urbano Sostenible - Programa Nuestras Ciudades</p>
+    <form id="loginForm">
+      <div class="field">
+        <label for="codeInput">Código de acceso</label>
+        <input id="codeInput" type="password" autocomplete="off" required placeholder="Ej.: BEL-XXXXXX">
       </div>
-
-      <!-- Estado Situacional -->
-      <div class="space-y-4">
-        <h2 class="text-lg font-semibold text-blue-800">2. Estado Situacional</h2>
-        <div>
-          <label class="block text-sm font-medium text-gray-700">Resumen / Estado Situacional</label>
-          <textarea id="estadoSituacional" rows="3" required class="mt-1 w-full p-2 border rounded-md"></textarea>
-        </div>
-      </div>
-
-      <!-- Hitos y Riesgos -->
-      <div class="space-y-4">
-        <h2 class="text-lg font-semibold text-blue-800">3. Hitos y Riesgos</h2>
-        <div>
-          <label class="block text-sm font-medium text-gray-700">Hitos Programados</label>
-          <textarea id="hitos" rows="3" class="mt-1 w-full p-2 border rounded-md"></textarea>
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700">Riesgo Potencial</label>
-          <textarea id="riesgos" rows="2" class="mt-1 w-full p-2 border rounded-md"></textarea>
-        </div>
-      </div>
-
-      <button type="submit" class="w-full bg-blue-600 text-white py-3 rounded-md font-semibold hover:bg-blue-700 transition">
-        Guardar Registro
-      </button>
+      <button class="btn primary" type="submit" id="loginBtn" style="width:100%">Ingresar</button>
+      <div id="loginMsg" role="alert"></div>
     </form>
+    <p class="hint" id="demoHint"></p>
   </div>
+</div>
 
-  <script src="app.js"></script>
+<!-- APP -->
+<div id="appView" class="hidden">
+  <header class="top">
+    <div class="brand"><small>UIDUS - PROGRAMA NUESTRAS CIUDADES</small><strong>Reporte semanal de avances</strong></div>
+    <div class="who"><span id="whoName"></span><button class="btn sm" id="logoutBtn" type="button">Salir</button></div>
+  </header>
+  <main>
+    <nav class="tabs" role="tablist" id="tabs">
+      <button role="tab" data-tab="form" aria-selected="true">1. Formulario</button>
+      <button role="tab" data-tab="list" aria-selected="false">2. Listado de registros</button>
+      <button role="tab" data-tab="ppt" aria-selected="false" data-admin>3. Reporte PPT</button>
+      <button role="tab" data-tab="dash" aria-selected="false" data-admin>4. Dashboard</button>
+    </nav>
+
+    <!-- 1. FORMULARIO -->
+    <section id="tab-form">
+      <form id="regForm" novalidate>
+        <div class="card">
+          <div class="grid g3">
+            <div>
+              <label for="fProyecto">Proyecto o programa <span class="req">*</span></label>
+              <select id="fProyecto" required></select>
+            </div>
+            <div>
+              <label for="fFecha">Fecha de corte del reporte <span class="req">*</span></label>
+              <input id="fFecha" type="date" required>
+            </div>
+            <div>
+              <label>Semana</label>
+              <div id="fSemana" style="padding:8px 0;font-weight:700"></div>
+            </div>
+          </div>
+          <div id="prefillNote" class="hint"></div>
+        </div>
+
+        <div class="card section-head"><strong>1. DATOS GENERALES DEL PROYECTO O PROGRAMA</strong></div>
+        <div class="card section-body">
+          <div class="field"><label for="fPrograma">Programa o Proyecto de Inversión Pública</label><textarea id="fPrograma" style="min-height:70px"></textarea></div>
+          <div class="field"><label for="fCui">CUI / Cód. SNIP</label><input id="fCui" type="text"></div>
+          <div class="field"><label for="fEstructurantes">Proyecto(s) estructurantes y de prioridad</label><textarea id="fEstructurantes" class="tall"></textarea><div class="hint">Un CUI por línea.</div></div>
+          <div class="field">
+            <label>Monto de inversión actualizado del programa o proyecto</label>
+            <table class="montos">
+              <thead><tr><th>CUI</th><th>Monto de inversión (S/)</th><th>Monto Etapa 1 (S/)</th><th></th></tr></thead>
+              <tbody id="montosBody"></tbody>
+              <tfoot><tr><td>Total</td><td id="totMonto">-</td><td id="totEtapa">-</td><td></td></tr></tfoot>
+            </table>
+            <button type="button" class="btn sm" id="addMonto" style="margin-top:6px">+ Agregar CUI</button>
+            <div class="hint">Puede escribir los montos con comas o con "S/"; se normalizan solos.</div>
+          </div>
+        </div>
+
+        <div class="card section-head"><strong>2. ESTADO SITUACIONAL DEL PROYECTO</strong></div>
+        <div class="card section-body">
+          <label for="fEstado">Estado situacional</label>
+          <textarea id="fEstado" class="tall"></textarea>
+        </div>
+
+        <div class="card section-head"><strong>3. HITOS PROGRAMADOS Y AVANCE</strong></div>
+        <div class="card section-body">
+          <div class="grid g2">
+            <div class="field"><label for="fHitosSem">Hitos programados 4.º semestre 2026</label><textarea id="fHitosSem" class="tall"></textarea></div>
+            <div class="field"><label for="fHitosSemanal">Hitos programados semanal</label><textarea id="fHitosSemanal" class="tall"></textarea></div>
+          </div>
+          <div class="field"><label for="fAvance">Avance semanal <span class="req">*</span></label><textarea id="fAvance" class="tall" required></textarea></div>
+          <div class="grid g2">
+            <div class="field">
+              <label for="fPct">Porcentaje de avance físico / del hito</label>
+              <div class="range-row"><input id="fPct" type="range" min="0" max="100" value="0"><output id="fPctOut" for="fPct">0%</output></div>
+            </div>
+            <div class="field">
+              <label>Semáforo</label>
+              <div class="radios" id="fSemaforo">
+                <label><input type="radio" name="semaforo" value="Verde" checked><span class="pill Verde"><span class="dot">✔</span>Verde: según lo programado</span></label>
+                <label><input type="radio" name="semaforo" value="Ámbar"><span class="pill Ámbar"><span class="dot">▲</span>Ámbar: en riesgo</span></label>
+                <label><input type="radio" name="semaforo" value="Rojo"><span class="pill Rojo"><span class="dot">✖</span>Rojo: retrasado / paralizado</span></label>
+              </div>
+            </div>
+          </div>
+          <div class="grid g2">
+            <div class="field">
+              <label for="fArchivos">Evidencia (archivos)</label>
+              <input id="fArchivos" type="file" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx">
+              <div class="hint" id="archHint">Hasta 5 archivos de 6 MB cada uno.</div>
+              <div class="files-list" id="archList"></div>
+            </div>
+            <div class="field">
+              <label for="fEnlaces">Evidencia (enlaces)</label>
+              <textarea id="fEnlaces" style="min-height:70px" placeholder="Pegue enlaces de Drive, SharePoint, etc. Uno por línea"></textarea>
+            </div>
+          </div>
+          <div class="grid g2">
+            <div class="field"><label for="fRiesgo">Riesgo potencial</label><textarea id="fRiesgo" class="tall"></textarea></div>
+            <div class="field"><label for="fMedidas">Medidas de mitigación</label><textarea id="fMedidas" class="tall"></textarea></div>
+          </div>
+        </div>
+
+        <div class="sticky-actions">
+          <button type="submit" class="btn primary" id="saveBtn">Registrar reporte</button>
+          <button type="button" class="btn" id="clearBtn">Limpiar avance y evidencia</button>
+        </div>
+        <div id="saveMsg" role="status"></div>
+      </form>
+    </section>
+
+    <!-- 2. LISTADO -->
+    <section id="tab-list" class="hidden">
+      <div class="toolbar">
+        <div class="field grow"><label for="lProyecto">Proyecto</label><select id="lProyecto"></select></div>
+        <div class="field"><label for="lSemana">Semana</label><select id="lSemana"></select></div>
+        <div class="field grow"><label for="lBuscar">Buscar</label><input id="lBuscar" type="text" placeholder="Texto en avance, riesgos…"></div>
+        <button class="btn" id="btnRefrescar" type="button">Actualizar</button>
+        <button class="btn primary" id="btnXlsx" type="button">Exportar Excel</button>
+        <button class="btn primary" id="btnPdf" type="button">Exportar PDF</button>
+      </div>
+      <div id="listCount" class="muted small" style="margin-bottom:6px"></div>
+      <div class="table-wrap"><table class="data" id="listTable"></table></div>
+    </section>
+
+    <!-- 3. PPT -->
+    <section id="tab-ppt" class="hidden">
+      <div class="card">
+        <h2>Reporte general en PowerPoint</h2>
+        <p class="muted" style="margin-top:0">Genera una presentación con portada, resumen, dos láminas por proyecto (avance/riesgos y situación/hitos) y la lista de proyectos sin reporte, tomando el último registro de cada proyecto en la semana elegida.</p>
+        <div class="toolbar">
+          <div class="field"><label for="pSemana">Semana</label><select id="pSemana"></select></div>
+          <button class="btn primary" id="btnPpt" type="button">Generar PPT</button>
+        </div>
+        <div id="pptInfo" class="msg info hidden"></div>
+      </div>
+    </section>
+
+    <!-- 4. DASHBOARD -->
+    <section id="tab-dash" class="hidden">
+      <div class="toolbar">
+        <div class="field"><label for="dSemana">Semana</label><select id="dSemana"></select></div>
+        <div class="field"><label for="dProyecto">Evolución de</label><select id="dProyecto"></select></div>
+        <button class="btn hidden" type="button" id="btnDemoData">Generar datos de ejemplo</button>
+      </div>
+      <div class="kpis" id="kpis"></div>
+      <div class="grid g2">
+        <div class="card">
+          <h3>Avance por proyecto (semana seleccionada)</h3>
+          <div class="chart-box"><canvas id="chBar" role="img" aria-label="Porcentaje de avance por proyecto"></canvas></div>
+          <details class="tbl"><summary>Ver como tabla</summary><div id="barTable" class="table-wrap" style="margin-top:8px"></div></details>
+        </div>
+        <div class="card">
+          <h3>Evolución del avance por semana</h3>
+          <div class="chart-box"><canvas id="chLine" role="img" aria-label="Evolución semanal del porcentaje de avance"></canvas></div>
+          <details class="tbl"><summary>Ver como tabla</summary><div id="lineTable" class="table-wrap" style="margin-top:8px"></div></details>
+        </div>
+      </div>
+      <div class="grid g2">
+        <div class="card"><h3>Alertas: proyectos en ámbar o rojo</h3><div id="riskList"></div></div>
+        <div class="card"><h3>Proyectos sin reporte en la semana</h3><div id="pendList"></div></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<dialog id="dlg"><div class="dh"><strong id="dlgTitle"></strong><button class="btn sm" id="dlgClose" type="button">Cerrar</button></div><div class="db" id="dlgBody"></div></dialog>
+
+<script src="config.js"></script>
+<script src="app.js"></script>
 </body>
 </html>
