@@ -3,13 +3,18 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Reporte Semanal de Avances - UIDUS PNC</title>
+<title>Registro de proyectos - UIDUS PNC</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <link rel="stylesheet" href="styles.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pptxgenjs/3.12.0/pptxgen.bundle.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 </head>
 <body>
 
@@ -17,11 +22,14 @@
   Modo demostración: los datos se guardan solo en este navegador. Configure <code>API_URL</code> en <code>config.js</code> para usar el registro compartido.
 </div>
 
-<!-- LOGIN -->
+<!-- ACCESO -->
 <div id="loginView" class="login">
   <div class="card">
-    <h1 style="font-size:1.25rem">Reporte semanal de avances</h1>
-    <p class="muted small" style="margin:6px 0 18px">Unidad de Inversiones en Desarrollo Urbano Sostenible - Programa Nuestras Ciudades</p>
+    <div class="brand" style="margin-bottom:14px">
+      <img id="logoLogin" class="logo hidden" alt="Logotipo institucional">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <div class="brand-text"><small>UIDUS · PROGRAMA NUESTRAS CIUDADES</small><strong>Registro de proyectos</strong></div>
+    </div>
     <form id="loginForm">
       <div class="field">
         <label for="codeInput">Código de acceso</label>
@@ -34,11 +42,17 @@
   </div>
 </div>
 
-<!-- APP -->
+<!-- APLICACIÓN -->
 <div id="appView" class="hidden">
   <header class="top">
-    <div class="brand"><small>UIDUS - PROGRAMA NUESTRAS CIUDADES</small><strong>Reporte semanal de avances</strong></div>
-    <div class="who"><span id="whoName"></span><button class="btn sm" id="logoutBtn" type="button">Salir</button></div>
+    <div class="inner">
+      <div class="brand">
+        <img id="logoImg" class="logo hidden" alt="Logotipo institucional">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <div class="brand-text"><small>UIDUS · PROGRAMA NUESTRAS CIUDADES</small><strong>Registro de proyectos</strong></div>
+      </div>
+      <div class="who"><span id="whoName"></span><button class="btn sm" id="logoutBtn" type="button">Salir</button></div>
+    </div>
   </header>
   <main>
     <nav class="tabs" role="tablist" id="tabs">
@@ -48,92 +62,204 @@
       <button role="tab" data-tab="dash" aria-selected="false" data-admin>4. Dashboard</button>
     </nav>
 
-    <!-- 1. FORMULARIO -->
+    <!-- 1. FORMULARIO POR PASOS -->
     <section id="tab-form">
+      <div class="stepper-wrap">
+        <ol class="stepper" id="stepper" aria-label="Progreso del formulario">
+          <li data-step="1"><button type="button" class="step"><span class="step-num">1</span><span class="step-label">Datos generales</span></button></li>
+          <li data-step="2"><button type="button" class="step"><span class="step-num">2</span><span class="step-label">Ubicación</span></button></li>
+          <li data-step="3"><button type="button" class="step"><span class="step-num">3</span><span class="step-label">Presupuesto</span></button></li>
+          <li data-step="4"><button type="button" class="step"><span class="step-num">4</span><span class="step-label">Cronograma</span></button></li>
+          <li data-step="5"><button type="button" class="step"><span class="step-num">5</span><span class="step-label">Adjuntos</span></button></li>
+        </ol>
+        <div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" id="progress"><div id="progressBar"></div></div>
+        <div class="step-info" id="stepInfo" aria-live="polite"></div>
+      </div>
+
       <form id="regForm" novalidate>
-        <div class="card">
-          <div class="grid g3">
-            <div>
-              <label for="fProyecto">Proyecto o programa <span class="req">*</span></label>
-              <select id="fProyecto" required></select>
+        <!-- Paso 1 -->
+        <fieldset class="step-panel" data-step="1">
+          <legend class="hidden">Datos generales</legend>
+          <div class="card">
+            <div class="card-head"><h2>Datos generales</h2><span class="sub">Los campos con * son obligatorios</span></div>
+            <div class="grid g2">
+              <div class="field">
+                <label for="fProyecto">Proyecto o programa (catálogo) <span class="req">*</span></label>
+                <select id="fProyecto" required></select>
+                <div class="error-msg" role="alert"></div>
+              </div>
+              <div class="grid g2">
+                <div class="field">
+                  <label for="fFecha">Fecha de corte <span class="req">*</span></label>
+                  <input id="fFecha" type="date" required>
+                  <div class="error-msg" role="alert"></div>
+                </div>
+                <div class="field">
+                  <label>Semana de reporte</label>
+                  <div id="fSemana" style="padding:9px 0;font-weight:700"></div>
+                </div>
+              </div>
             </div>
-            <div>
-              <label for="fFecha">Fecha de corte del reporte <span class="req">*</span></label>
-              <input id="fFecha" type="date" required>
+            <div class="field" style="margin-top:16px">
+              <label for="fNombre">Nombre del proyecto <span class="req">*</span></label>
+              <textarea id="fNombre" style="min-height:72px" placeholder="Ej.: Habilitación urbana para la reubicación de la población de…"></textarea>
+              <div class="error-msg" role="alert"></div>
             </div>
-            <div>
-              <label>Semana</label>
-              <div id="fSemana" style="padding:8px 0;font-weight:700"></div>
+            <div class="grid g3" style="margin-top:16px">
+              <div class="field">
+                <label for="fCui">Código único (CUI / Cód. SNIP) <span class="req">*</span></label>
+                <input id="fCui" type="text" placeholder="Ej.: 2300564">
+                <div class="error-msg" role="alert"></div>
+              </div>
+              <div class="field">
+                <label for="fInicio">Fecha de inicio</label>
+                <input id="fInicio" type="date">
+                <div class="error-msg" role="alert"></div>
+              </div>
+              <div class="field">
+                <label for="fFin">Fecha de fin</label>
+                <input id="fFin" type="date">
+                <div class="error-msg" role="alert"></div>
+              </div>
             </div>
-          </div>
-          <div id="prefillNote" class="hint"></div>
-        </div>
-
-        <div class="card section-head"><strong>1. DATOS GENERALES DEL PROYECTO O PROGRAMA</strong></div>
-        <div class="card section-body">
-          <div class="field"><label for="fPrograma">Programa o Proyecto de Inversión Pública</label><textarea id="fPrograma" style="min-height:70px"></textarea></div>
-          <div class="field"><label for="fCui">CUI / Cód. SNIP</label><input id="fCui" type="text"></div>
-          <div class="field"><label for="fEstructurantes">Proyecto(s) estructurantes y de prioridad</label><textarea id="fEstructurantes" class="tall"></textarea><div class="hint">Un CUI por línea.</div></div>
-          <div class="field">
-            <label>Monto de inversión actualizado del programa o proyecto</label>
-            <table class="montos">
-              <thead><tr><th>CUI</th><th>Monto de inversión (S/)</th><th>Monto Etapa 1 (S/)</th><th></th></tr></thead>
-              <tbody id="montosBody"></tbody>
-              <tfoot><tr><td>Total</td><td id="totMonto">-</td><td id="totEtapa">-</td><td></td></tr></tfoot>
-            </table>
-            <button type="button" class="btn sm" id="addMonto" style="margin-top:6px">+ Agregar CUI</button>
-            <div class="hint">Puede escribir los montos con comas o con "S/"; se normalizan solos.</div>
-          </div>
-        </div>
-
-        <div class="card section-head"><strong>2. ESTADO SITUACIONAL DEL PROYECTO</strong></div>
-        <div class="card section-body">
-          <label for="fEstado">Estado situacional</label>
-          <textarea id="fEstado" class="tall"></textarea>
-        </div>
-
-        <div class="card section-head"><strong>3. HITOS PROGRAMADOS Y AVANCE</strong></div>
-        <div class="card section-body">
-          <div class="grid g2">
-            <div class="field"><label for="fHitosSem">Hitos programados 4.º semestre 2026</label><textarea id="fHitosSem" class="tall"></textarea></div>
-            <div class="field"><label for="fHitosSemanal">Hitos programados semanal</label><textarea id="fHitosSemanal" class="tall"></textarea></div>
-          </div>
-          <div class="field"><label for="fAvance">Avance semanal <span class="req">*</span></label><textarea id="fAvance" class="tall" required></textarea></div>
-          <div class="grid g2">
-            <div class="field">
-              <label for="fPct">Porcentaje de avance físico / del hito</label>
-              <div class="range-row"><input id="fPct" type="range" min="0" max="100" value="0"><output id="fPctOut" for="fPct">0%</output></div>
-            </div>
-            <div class="field">
-              <label>Semáforo</label>
-              <div class="radios" id="fSemaforo">
-                <label><input type="radio" name="semaforo" value="Verde" checked><span class="pill Verde"><span class="dot">✔</span>Verde: según lo programado</span></label>
-                <label><input type="radio" name="semaforo" value="Ámbar"><span class="pill Ámbar"><span class="dot">▲</span>Ámbar: en riesgo</span></label>
-                <label><input type="radio" name="semaforo" value="Rojo"><span class="pill Rojo"><span class="dot">✖</span>Rojo: retrasado / paralizado</span></label>
+            <div class="grid g2" style="margin-top:16px">
+              <div class="field">
+                <label for="fEstadoProy">Estado del proyecto <span class="req">*</span></label>
+                <select id="fEstadoProy">
+                  <option value="">Seleccione…</option>
+                  <option>Planificación</option>
+                  <option>Ejecución</option>
+                  <option>Concluido</option>
+                </select>
+                <div class="error-msg" role="alert"></div>
+              </div>
+              <div class="field">
+                <label for="fEstructurantes">Proyecto(s) estructurantes y de prioridad</label>
+                <textarea id="fEstructurantes" style="min-height:72px" placeholder="Un CUI por línea"></textarea>
               </div>
             </div>
           </div>
-          <div class="grid g2">
-            <div class="field">
-              <label for="fArchivos">Evidencia (archivos)</label>
-              <input id="fArchivos" type="file" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx">
-              <div class="hint" id="archHint">Hasta 5 archivos de 6 MB cada uno.</div>
-              <div class="files-list" id="archList"></div>
-            </div>
-            <div class="field">
-              <label for="fEnlaces">Evidencia (enlaces)</label>
-              <textarea id="fEnlaces" style="min-height:70px" placeholder="Pegue enlaces de Drive, SharePoint, etc. Uno por línea"></textarea>
-            </div>
-          </div>
-          <div class="grid g2">
-            <div class="field"><label for="fRiesgo">Riesgo potencial</label><textarea id="fRiesgo" class="tall"></textarea></div>
-            <div class="field"><label for="fMedidas">Medidas de mitigación</label><textarea id="fMedidas" class="tall"></textarea></div>
-          </div>
-        </div>
+        </fieldset>
 
-        <div class="sticky-actions">
-          <button type="submit" class="btn primary" id="saveBtn">Registrar reporte</button>
-          <button type="button" class="btn" id="clearBtn">Limpiar avance y evidencia</button>
+        <!-- Paso 2 -->
+        <fieldset class="step-panel hidden" data-step="2">
+          <legend class="hidden">Ubicación</legend>
+          <div class="card">
+            <div class="card-head"><h2>Ubicación geográfica</h2></div>
+            <div class="grid g3">
+              <div class="field">
+                <label for="fDep">Departamento <span class="req">*</span></label>
+                <select id="fDep"><option value="">Cargando…</option></select>
+                <div class="error-msg" role="alert"></div>
+              </div>
+              <div class="field">
+                <label for="fProv">Provincia <span class="req">*</span></label>
+                <select id="fProv" disabled><option value="">Seleccione departamento…</option></select>
+                <div class="error-msg" role="alert"></div>
+              </div>
+              <div class="field">
+                <label for="fDist">Distrito <span class="req">*</span></label>
+                <select id="fDist" disabled><option value="">Seleccione provincia…</option></select>
+                <div class="error-msg" role="alert"></div>
+              </div>
+            </div>
+            <div style="margin-top:16px">
+              <label id="mapLabel">Punto en el mapa <span class="muted small">(opcional: haga clic o arrastre el marcador)</span></label>
+              <div id="map" role="application" aria-labelledby="mapLabel"></div>
+              <div class="map-bar">
+                <span id="coordTxt">Sin punto marcado</span>
+                <button type="button" class="btn sm secondary" id="btnClearPoint">Quitar punto</button>
+              </div>
+              <input type="hidden" id="fLat"><input type="hidden" id="fLng">
+            </div>
+          </div>
+        </fieldset>
+
+        <!-- Paso 3 -->
+        <fieldset class="step-panel hidden" data-step="3">
+          <legend class="hidden">Presupuesto y financiamiento</legend>
+          <div class="card">
+            <div class="card-head"><h2>Presupuesto y financiamiento</h2><span class="sub">Montos en Soles (S/)</span></div>
+            <div class="table-scroll">
+              <table class="montos">
+                <thead><tr><th>CUI</th><th>Monto de inversión</th><th>Monto Etapa 1</th><th></th></tr></thead>
+                <tbody id="montosBody"></tbody>
+                <tfoot><tr><td>Total</td><td id="totMonto">S/ 0.00</td><td id="totEtapa">S/ 0.00</td><td></td></tr></tfoot>
+              </table>
+            </div>
+            <button type="button" class="btn sm secondary" id="addMonto" style="margin-top:8px">+ Agregar CUI</button>
+            <div class="hint">Puede escribir con comas o con "S/"; el formato se ajusta al salir del campo.</div>
+          </div>
+        </fieldset>
+
+        <!-- Paso 4 -->
+        <fieldset class="step-panel hidden" data-step="4">
+          <legend class="hidden">Cronograma y avance</legend>
+          <div class="card">
+            <div class="card-head"><h2>Cronograma</h2></div>
+            <div class="grid g2">
+              <div class="field"><label for="fHitosSem">Hitos programados 4.º semestre 2026</label><textarea id="fHitosSem" class="tall"></textarea></div>
+              <div class="field"><label for="fHitosSemanal">Hitos programados de la semana</label><textarea id="fHitosSemanal" class="tall"></textarea></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-head"><h2>Situación y avance</h2></div>
+            <div class="field"><label for="fEstado">Estado situacional</label><textarea id="fEstado" class="tall"></textarea></div>
+            <div class="field">
+              <label for="fAvance">Avance semanal <span class="req">*</span></label>
+              <textarea id="fAvance" class="tall" placeholder="Describa lo avanzado en la semana"></textarea>
+              <div class="error-msg" role="alert"></div>
+            </div>
+            <div class="grid g2">
+              <div class="field">
+                <label for="fPct">Porcentaje de avance físico / del hito</label>
+                <div class="range-row"><input id="fPct" type="range" min="0" max="100" value="0"><output id="fPctOut" for="fPct">0%</output></div>
+              </div>
+              <div class="field">
+                <label>Semáforo</label>
+                <div class="radios" id="fSemaforo">
+                  <label><input type="radio" name="semaforo" value="Verde" checked><span class="pill Verde"><span class="dot">✔</span>Verde: según lo programado</span></label>
+                  <label><input type="radio" name="semaforo" value="Ámbar"><span class="pill Ámbar"><span class="dot">▲</span>Ámbar: en riesgo</span></label>
+                  <label><input type="radio" name="semaforo" value="Rojo"><span class="pill Rojo"><span class="dot">✖</span>Rojo: retrasado / paralizado</span></label>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-head"><h2>Riesgos</h2></div>
+            <div class="grid g2">
+              <div class="field"><label for="fRiesgo">Riesgo potencial</label><textarea id="fRiesgo" class="tall"></textarea></div>
+              <div class="field"><label for="fMedidas">Medidas de mitigación</label><textarea id="fMedidas" class="tall"></textarea></div>
+            </div>
+          </div>
+        </fieldset>
+
+        <!-- Paso 5 -->
+        <fieldset class="step-panel hidden" data-step="5">
+          <legend class="hidden">Archivos y adjuntos</legend>
+          <div class="card">
+            <div class="card-head"><h2>Archivos y adjuntos</h2><span class="sub">Evidencias y documentos técnicos</span></div>
+            <div id="dropzone" class="dropzone" tabindex="0" role="button" aria-label="Zona para soltar archivos. Pulse Enter para elegir archivos">
+              <div class="dz-icon" aria-hidden="true">⬆</div>
+              <strong>Arrastre sus archivos aquí o haga clic para elegirlos</strong>
+              <p>PDF, imágenes, Word, Excel, PowerPoint o ZIP · hasta 5 archivos de 6 MB cada uno</p>
+            </div>
+            <input id="fArchivos" type="file" multiple hidden accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip">
+            <div class="dz-msg" id="dzMsg" role="alert"></div>
+            <ul class="filelist" id="fileList"></ul>
+            <div class="field" style="margin-top:16px">
+              <label for="fEnlaces">Enlaces de evidencia</label>
+              <textarea id="fEnlaces" style="min-height:72px" placeholder="Pegue enlaces de Drive, SharePoint, etc. Uno por línea"></textarea>
+            </div>
+          </div>
+        </fieldset>
+
+        <div class="step-nav">
+          <button type="button" class="btn secondary" id="btnPrev">← Anterior</button>
+          <div class="right">
+            <button type="button" class="btn dark" id="btnNext">Siguiente →</button>
+            <button type="submit" class="btn primary hidden" id="saveBtn">Registrar reporte</button>
+          </div>
         </div>
         <div id="saveMsg" role="status"></div>
       </form>
@@ -145,9 +271,9 @@
         <div class="field grow"><label for="lProyecto">Proyecto</label><select id="lProyecto"></select></div>
         <div class="field"><label for="lSemana">Semana</label><select id="lSemana"></select></div>
         <div class="field grow"><label for="lBuscar">Buscar</label><input id="lBuscar" type="text" placeholder="Texto en avance, riesgos…"></div>
-        <button class="btn" id="btnRefrescar" type="button">Actualizar</button>
-        <button class="btn primary" id="btnXlsx" type="button">Exportar Excel</button>
-        <button class="btn primary" id="btnPdf" type="button">Exportar PDF</button>
+        <button class="btn secondary" id="btnRefrescar" type="button">Actualizar</button>
+        <button class="btn dark" id="btnXlsx" type="button">Exportar Excel</button>
+        <button class="btn dark" id="btnPdf" type="button">Exportar PDF</button>
       </div>
       <div id="listCount" class="muted small" style="margin-bottom:6px"></div>
       <div class="table-wrap"><table class="data" id="listTable"></table></div>
@@ -156,7 +282,7 @@
     <!-- 3. PPT -->
     <section id="tab-ppt" class="hidden">
       <div class="card">
-        <h2>Reporte general en PowerPoint</h2>
+        <div class="card-head"><h2>Reporte general en PowerPoint</h2></div>
         <p class="muted" style="margin-top:0">Genera una presentación con portada, resumen, dos láminas por proyecto (avance/riesgos y situación/hitos) y la lista de proyectos sin reporte, tomando el último registro de cada proyecto en la semana elegida.</p>
         <div class="toolbar">
           <div class="field"><label for="pSemana">Semana</label><select id="pSemana"></select></div>
@@ -171,7 +297,7 @@
       <div class="toolbar">
         <div class="field"><label for="dSemana">Semana</label><select id="dSemana"></select></div>
         <div class="field"><label for="dProyecto">Evolución de</label><select id="dProyecto"></select></div>
-        <button class="btn hidden" type="button" id="btnDemoData">Generar datos de ejemplo</button>
+        <button class="btn secondary hidden" type="button" id="btnDemoData">Generar datos de ejemplo</button>
       </div>
       <div class="kpis" id="kpis"></div>
       <div class="grid g2">
@@ -195,8 +321,10 @@
 </div>
 
 <dialog id="dlg"><div class="dh"><strong id="dlgTitle"></strong><button class="btn sm" id="dlgClose" type="button">Cerrar</button></div><div class="db" id="dlgBody"></div></dialog>
+<div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
 
+<footer class="note">Herramienta de apoyo de la UIDUS - Programa Nuestras Ciudades para el registro de avances. No es un sistema oficial del MVCS.</footer>
 <script src="config.js"></script>
-<script src="app.js"></script>
+<script src="script.js"></script>
 </body>
 </html>
