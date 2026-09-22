@@ -9,12 +9,12 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <link rel="stylesheet" href="styles.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pptxgenjs/3.12.0/pptxgen.bundle.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pptxgenjs/3.12.0/pptxgen.bundle.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js" defer></script>
 </head>
 <body>
 
@@ -73,16 +73,16 @@
         <span class="brand-mark" aria-hidden="true"></span>
         <div class="brand-text"><small>UIDUS · PROGRAMA NUESTRAS CIUDADES</small><strong>Registro de proyectos</strong></div>
       </div>
-      <div class="who"><span id="whoName"></span><button class="btn sm" id="logoutBtn" type="button">Salir</button></div>
+      <div class="who"><span class="avatar" id="whoAvatar" aria-hidden="true"></span><span id="whoName"></span><button class="btn sm secondary" id="logoutBtn" type="button">Salir</button></div>
     </div>
   </header>
   <main>
     <nav class="tabs" role="tablist" id="tabs">
-      <button role="tab" data-tab="proj" aria-selected="false" data-admin>Proyectos</button>
-      <button role="tab" data-tab="form" aria-selected="true">Formulario</button>
-      <button role="tab" data-tab="list" aria-selected="false">Listado de registros</button>
-      <button role="tab" data-tab="ppt" aria-selected="false" data-admin>Reporte PPT</button>
-      <button role="tab" data-tab="dash" aria-selected="false" data-admin>Dashboard</button>
+      <button role="tab" data-tab="proj" aria-selected="false" data-admin><svg viewBox="0 0 24 24"><path d="M4 5h7v7H4zM13 5h7v4h-7zM13 12h7v7h-7zM4 15h7v4H4z"/></svg><span>Proyectos</span></button>
+      <button role="tab" data-tab="form" aria-selected="true"><svg viewBox="0 0 24 24"><path d="M8 3h8a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/><path d="M9 3v3h6V3M8.5 11.5l2 2 4.5-4.5M8 16h8"/></svg><span>Formulario</span></button>
+      <button role="tab" data-tab="list" aria-selected="false"><svg viewBox="0 0 24 24"><path d="M8 6h12M8 12h12M8 18h12"/><circle cx="4" cy="6" r="1.4"/><circle cx="4" cy="12" r="1.4"/><circle cx="4" cy="18" r="1.4"/></svg><span>Listado de registros</span></button>
+      <button role="tab" data-tab="ppt" aria-selected="false" data-admin><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="1.5"/><path d="M8 20h8M12 16v4"/></svg><span>Reporte PPT</span></button>
+      <button role="tab" data-tab="dash" aria-selected="false" data-admin><svg viewBox="0 0 24 24"><path d="M4 20V10M11 20V4M18 20v-7"/></svg><span>Dashboard</span></button>
     </nav>
 
     <!-- PANEL DE PROYECTOS (administrador) -->
@@ -162,9 +162,13 @@
                 <label for="fEstadoProy">Estado del proyecto <span class="req">*</span></label>
                 <select id="fEstadoProy">
                   <option value="">Seleccione…</option>
-                  <option>Planificación</option>
-                  <option>Ejecución</option>
-                  <option>Concluido</option>
+                  <option>En Idea de Proyecto</option>
+                  <option>En Formación</option>
+                  <option>Expediente Técnico</option>
+                  <option>En Ejecución</option>
+                  <option>Culminada</option>
+                  <option>En Liquidación</option>
+                  <option>Paralizada</option>
                 </select>
                 <div class="error-msg" role="alert"></div>
               </div>
@@ -359,7 +363,7 @@
 <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
 
 <footer class="note">Herramienta de apoyo de la UIDUS - Programa Nuestras Ciudades para el registro de avances. No es un sistema oficial del MVCS.</footer>
-<script src="config.js"></script>
-<script src="script.js"></script>
+<script src="config.js" defer></script>
+<script src="script.js" defer></script>
 </body>
 </html>
