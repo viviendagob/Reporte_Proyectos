@@ -40,6 +40,14 @@ const semLabel = s => `${s} (${weekRange(s)})`;
 const semaforoIcon = s => s === 'Verde' ? '✔' : s === 'Rojo' ? '✖' : '▲';
 const pill = s => `<span class="pill ${esc(s)}"><span class="dot">${semaforoIcon(s)}</span>${esc(s)}</span>`;
 const linksOf = ev => String(ev || '').split(/\s+/).filter(Boolean);
+/* -- hitos / actividades / avance semanal: texto legible a partir del arreglo (Excel, PPT, PDF) -- */
+const hitoTxt = h => [h.hito, h.responsable && 'Resp.: ' + h.responsable, h.dias && h.dias + ' días',
+  (h.inicio || h.fin) && 'Plazo: ' + fmtDia(h.inicio) + ' al ' + fmtDia(h.fin), h.respDirecto && 'Directo: ' + h.respDirecto,
+  (h.avance !== '' && h.avance != null) && 'Avance: ' + h.avance + '%'].filter(Boolean).join(' — ');
+const actividadTxt = a => [a.actividad, a.responsable && 'Resp.: ' + a.responsable, a.comentario].filter(Boolean).join(' — ');
+const avanceItemTxt = v => [v.actividad, v.cumplimiento, v.responsable && 'Resp.: ' + v.responsable, v.evidencia && 'Evid.: ' + v.evidencia].filter(Boolean).join(' — ');
+const fmtLista = (arr, fn) => (arr || []).map((x, i) => (i + 1) + '. ' + fn(x)).join('\n');
+const olHtml = (arr, fn) => arr && arr.length ? '<ol style="margin:4px 0 0;padding-left:18px">' + arr.map(x => `<li>${esc(fn(x))}</li>`).join('') + '</ol>' : '—';
 const byFechaDesc = (a, b) => String(b.fecha).localeCompare(String(a.fecha));
 function ultimosPorSemana(regs) {
   const m = new Map();
@@ -96,7 +104,8 @@ const Demo = {
       const evid = [].concat(String(r.evidenciaEnlaces || '').split(/\s+/).filter(Boolean), (r.archivos || []).map(a => '(demo) ' + a.nombre.replace(/\s+/g, '_'))).join('\n');
       const rec = { id: Math.random().toString(16).slice(2, 10).toUpperCase(), fecha: new Date().toISOString().slice(0, 19), semana: r.semana, proyectoId: r.proyectoId, usuario: s.nombre,
         programa: r.programa, cui: r.cui, estructurantes: r.estructurantes, montos: r.montos,
-        fechaInicio: r.fechaInicio, fechaFin: r.fechaFin, estadoProyecto: r.estadoProyecto, departamento: r.departamento, provincia: r.provincia, distrito: r.distrito, lat: r.lat, lng: r.lng, estado: r.estado, hitosSemestre: r.hitosSemestre, hitosSemanal: r.hitosSemanal,
+        fechaInicio: r.fechaInicio, fechaFin: r.fechaFin, estadoProyecto: r.estadoProyecto, departamento: r.departamento, provincia: r.provincia, distrito: r.distrito, lat: r.lat, lng: r.lng, estado: r.estado,
+        hitosSemestre: r.hitosSemestre || [], actividadesSemana: r.actividadesSemana || [], avanceDetalle: r.avanceDetalle || [],
         avance: r.avance, porcentaje: Number(r.porcentaje) || 0, semaforo: r.semaforo, evidencia: evid, riesgo: r.riesgo, medidas: r.medidas };
       db.registros.push(rec); this.persist();
       return { ok: true, id: rec.id };
@@ -325,6 +334,63 @@ function totales() {
   $('#totEtapa').textContent = fmtMoney(ms.reduce((a, m) => a + m.etapa1, 0));
 }
 
+/* -- hitos, actividades y avance semanal (tablas dinámicas) -- */
+function renumerar(tbody) { $$('tr', tbody).forEach((tr, i) => { const n = tr.querySelector('.n-cell'); if (n) n.textContent = i + 1; }); }
+function hitoRow(h) {
+  h = h || { hito: '', responsable: '', dias: '', inicio: '', fin: '', respDirecto: '', avance: '' };
+  const tr = document.createElement('tr');
+  tr.innerHTML = `<td class="n-cell num"></td>
+    <td><input type="text" class="h-hito" value="${esc(h.hito)}" placeholder="Descripción del hito" aria-label="Hito"></td>
+    <td><input type="text" class="h-resp" value="${esc(h.responsable)}" aria-label="Responsable"></td>
+    <td><input type="number" class="h-dias" value="${esc(h.dias)}" min="0" style="width:76px" aria-label="Días calendario"></td>
+    <td><input type="date" class="h-inicio" value="${esc(h.inicio)}" aria-label="Plazo inicio"></td>
+    <td><input type="date" class="h-fin" value="${esc(h.fin)}" aria-label="Plazo fin"></td>
+    <td><input type="text" class="h-respd" value="${esc(h.respDirecto)}" aria-label="Responsable(s) directo"></td>
+    <td><input type="number" class="h-avance" value="${esc(h.avance)}" min="0" max="100" style="width:76px" aria-label="Avance actual %"></td>
+    <td><button type="button" class="btn sm danger" aria-label="Quitar hito">✕</button></td>`;
+  tr.querySelector('button').onclick = () => { tr.remove(); renumerar($('#hitosBody')); };
+  return tr;
+}
+function leerHitos() {
+  return $$('#hitosBody tr').map(tr => ({
+    hito: $('.h-hito', tr).value.trim(), responsable: $('.h-resp', tr).value.trim(), dias: $('.h-dias', tr).value.trim(),
+    inicio: $('.h-inicio', tr).value, fin: $('.h-fin', tr).value, respDirecto: $('.h-respd', tr).value.trim(), avance: $('.h-avance', tr).value.trim()
+  })).filter(h => h.hito || h.responsable || h.inicio || h.fin || h.respDirecto || h.avance);
+}
+function actividadRow(a) {
+  a = a || { actividad: '', responsable: '', comentario: '' };
+  const tr = document.createElement('tr');
+  tr.innerHTML = `<td class="n-cell num"></td>
+    <td><input type="text" class="a-act" value="${esc(a.actividad)}" placeholder="Actividad programada" aria-label="Actividad semanal"></td>
+    <td><input type="text" class="a-resp" value="${esc(a.responsable)}" aria-label="Responsable"></td>
+    <td><input type="text" class="a-com" value="${esc(a.comentario)}" aria-label="Comentario"></td>
+    <td><button type="button" class="btn sm danger" aria-label="Quitar actividad">✕</button></td>`;
+  tr.querySelector('button').onclick = () => { tr.remove(); renumerar($('#actividadesBody')); };
+  return tr;
+}
+function leerActividades() {
+  return $$('#actividadesBody tr').map(tr => ({
+    actividad: $('.a-act', tr).value.trim(), responsable: $('.a-resp', tr).value.trim(), comentario: $('.a-com', tr).value.trim()
+  })).filter(a => a.actividad || a.responsable || a.comentario);
+}
+function avanceRow(v) {
+  v = v || { actividad: '', cumplimiento: '', responsable: '', evidencia: '' };
+  const tr = document.createElement('tr');
+  tr.innerHTML = `<td class="n-cell num"></td>
+    <td><input type="text" class="v-act" value="${esc(v.actividad)}" placeholder="Actividad de la semana anterior" aria-label="Actividad"></td>
+    <td><input type="text" class="v-cum" value="${esc(v.cumplimiento)}" aria-label="Cumplimiento o comentario"></td>
+    <td><input type="text" class="v-resp" value="${esc(v.responsable)}" aria-label="Responsable"></td>
+    <td><input type="text" class="v-evid" value="${esc(v.evidencia)}" placeholder="Enlace" aria-label="Evidencia"></td>
+    <td><button type="button" class="btn sm danger" aria-label="Quitar ítem">✕</button></td>`;
+  tr.querySelector('button').onclick = () => { tr.remove(); renumerar($('#avanceDetalleBody')); };
+  return tr;
+}
+function leerAvanceDetalle() {
+  return $$('#avanceDetalleBody tr').map(tr => ({
+    actividad: $('.v-act', tr).value.trim(), cumplimiento: $('.v-cum', tr).value.trim(), responsable: $('.v-resp', tr).value.trim(), evidencia: $('.v-evid', tr).value.trim()
+  })).filter(v => v.actividad || v.cumplimiento || v.responsable || v.evidencia);
+}
+
 /* -- adjuntos (arrastrar y soltar) -- */
 function pintarArchivos() {
   $('#fileList').innerHTML = form.archivos.map((f, i) => `<li><span aria-hidden="true">📎</span><span class="fname">${esc(f.name)}</span><span class="fsize">${(f.size / 1048576).toFixed(2)} MB</span><button type="button" class="btn sm danger" data-rm="${i}" aria-label="Quitar ${esc(f.name)}">Quitar</button></li>`).join('');
@@ -371,8 +437,9 @@ async function precargarProyecto() {
   (b.montos && b.montos.length ? b.montos : cat.montos || []).forEach(m => $('#montosBody').appendChild(montoRow(m)));
   totales();
   $('#fEstado').value = b.estado || '';
-  $('#fHitosSem').value = b.hitosSemestre || '';
-  $('#fHitosSemanal').value = '';
+  $('#hitosBody').innerHTML = ''; (b.hitosSemestre || []).forEach(h => $('#hitosBody').appendChild(hitoRow(h))); renumerar($('#hitosBody'));
+  $('#actividadesBody').innerHTML = ''; renumerar($('#actividadesBody')); // se llena de nuevo cada semana
+  $('#avanceDetalleBody').innerHTML = ''; renumerar($('#avanceDetalleBody')); // se llena de nuevo cada semana
   $('#fRiesgo').value = b.riesgo || '';
   $('#fMedidas').value = b.medidas || '';
   await fijarUbicacion({ departamento: b.departamento, provincia: b.provincia, distrito: b.distrito, lat: b.lat, lng: b.lng });
@@ -400,7 +467,7 @@ async function enviarFormulario(e) {
       programa: $('#fNombre').value.trim(), cui: $('#fCui').value.trim(), estructurantes: $('#fEstructurantes').value.trim(), montos: leerMontos(),
       fechaInicio: $('#fInicio').value, fechaFin: $('#fFin').value, estadoProyecto: $('#fEstadoProy').value,
       departamento: $('#fDep').value, provincia: $('#fProv').value, distrito: $('#fDist').value, lat: $('#fLat').value, lng: $('#fLng').value,
-      estado: $('#fEstado').value.trim(), hitosSemestre: $('#fHitosSem').value.trim(), hitosSemanal: $('#fHitosSemanal').value.trim(),
+      estado: $('#fEstado').value.trim(), hitosSemestre: leerHitos(), actividadesSemana: leerActividades(), avanceDetalle: leerAvanceDetalle(),
       avance: $('#fAvance').value.trim(), porcentaje: Number($('#fPct').value), semaforo: $('input[name=semaforo]:checked').value,
       evidenciaEnlaces: $('#fEnlaces').value.trim(), archivos, riesgo: $('#fRiesgo').value.trim(), medidas: $('#fMedidas').value.trim()
     };
@@ -429,7 +496,7 @@ function poblarFiltros() {
 function filtrados() {
   const p = $('#lProyecto').value, s = $('#lSemana').value, q = $('#lBuscar').value.trim().toLowerCase();
   return state.registros.filter(r => (!p || r.proyectoId === p) && (!s || r.semana === s) &&
-    (!q || [r.avance, r.hitosSemanal, r.riesgo, r.medidas, r.estado, r.proyectoId, r.usuario].join(' ').toLowerCase().includes(q))).sort(byFechaDesc);
+    (!q || [r.avance, fmtLista(r.actividadesSemana, actividadTxt), r.riesgo, r.medidas, r.estado, r.proyectoId, r.usuario].join(' ').toLowerCase().includes(q))).sort(byFechaDesc);
 }
 function renderLista() {
   const rows = filtrados();
@@ -500,8 +567,10 @@ function verRegistro(r) {
   $('#dlgTitle').textContent = `${r.proyectoId} · ${semLabel(r.semana)}`;
   const dd = (t, v) => `<dt>${esc(t)}</dt><dd>${v}</dd>`;
   $('#dlgBody').innerHTML = '<dl>' +
-    dd('Avance', `${esc(r.porcentaje)}% · ${pill(r.semaforo)}`) + dd('Avance semanal', esc(r.avance)) + dd('Hitos programados semanal', esc(r.hitosSemanal) || '—') +
-    dd('Hitos 4.º semestre 2026', esc(r.hitosSemestre) || '—') + dd('Estado situacional', esc(r.estado) || '—') + dd('Riesgo potencial', esc(r.riesgo) || '—') +
+    dd('Avance', `${esc(r.porcentaje)}% · ${pill(r.semaforo)}`) + dd('Avance semanal', esc(r.avance)) +
+    dd('Avance semanal (detalle)', olHtml(r.avanceDetalle, avanceItemTxt)) +
+    dd('Actividades programadas (semana)', olHtml(r.actividadesSemana, actividadTxt)) +
+    dd('Hitos 4.º semestre 2026', olHtml(r.hitosSemestre, hitoTxt)) + dd('Estado situacional', esc(r.estado) || '—') + dd('Riesgo potencial', esc(r.riesgo) || '—') +
     dd('Medidas de mitigación', esc(r.medidas) || '—') + dd('Evidencia', ev) +
     dd('Nombre del proyecto', esc(r.programa)) + dd('CUI / SNIP', esc(r.cui)) + dd('Estado del proyecto', esc(r.estadoProyecto) || '—') +
     dd('Fechas', esc(fmtDia(r.fechaInicio) + ' al ' + fmtDia(r.fechaFin))) + dd('Ubicación', esc(ubicacionTxt(r)) || '—') + dd('Registrado', `${esc(r.usuario)} · ${esc(fmtFecha(r.fecha))} · N.º ${esc(r.id)}`) + '</dl>';
@@ -515,12 +584,13 @@ function exportarExcel() {
   const data = rows.map(r => ({
     'Semana': r.semana, 'Periodo': weekRange(r.semana), 'Proyecto': r.proyectoId, 'Nombre del proyecto': r.programa, 'CUI / SNIP': r.cui,
     'Estado del proyecto': r.estadoProyecto, 'Fecha inicio': fmtDia(r.fechaInicio), 'Fecha fin': fmtDia(r.fechaFin), 'Departamento': r.departamento, 'Provincia': r.provincia, 'Distrito': r.distrito, 'Latitud': r.lat, 'Longitud': r.lng,
-    '% avance': r.porcentaje, 'Semáforo': r.semaforo, 'Avance semanal': r.avance, 'Hitos semanal': r.hitosSemanal, 'Hitos 4.º semestre': r.hitosSemestre,
+    '% avance': r.porcentaje, 'Semáforo': r.semaforo, 'Avance semanal': r.avance, 'Avance semanal (detalle)': fmtLista(r.avanceDetalle, avanceItemTxt),
+    'Actividades programadas (semana)': fmtLista(r.actividadesSemana, actividadTxt), 'Hitos 4.º semestre': fmtLista(r.hitosSemestre, hitoTxt),
     'Estado situacional': r.estado, 'Riesgo potencial': r.riesgo, 'Medidas de mitigación': r.medidas, 'Evidencia': linksOf(r.evidencia).join('\n'),
     'Registrado por': r.usuario, 'Fecha de registro': fmtFecha(r.fecha), 'N.º registro': r.id
   }));
   const ws = XLSX.utils.json_to_sheet(data);
-  ws['!cols'] = [10, 14, 22, 40, 18, 14, 12, 12, 14, 14, 16, 11, 11, 9, 10, 60, 45, 45, 60, 50, 50, 40, 24, 16, 11].map(w => ({ wch: w }));
+  ws['!cols'] = [10, 14, 22, 40, 18, 14, 12, 12, 14, 14, 16, 11, 11, 9, 10, 60, 45, 45, 45, 60, 50, 50, 40, 24, 16, 11].map(w => ({ wch: w }));
   ws['!freeze'] = { xSplit: 0, ySplit: 1 };
   const montos = [];
   rows.forEach(r => (r.montos || []).forEach(m => montos.push({ 'Semana': r.semana, 'Proyecto': r.proyectoId, 'CUI': m.cui, 'Monto de inversión (S/)': m.monto, 'Monto Etapa 1 (S/)': m.etapa1 })));
@@ -544,8 +614,8 @@ function exportarPdf() {
   doc.setFontSize(13).text('LISTADO DE REPORTES DE AVANCE DE PROYECTOS', W / 2, 54, { align: 'center' });
   doc.autoTable({
     startY: 70, margin: { left: 30, right: 30, bottom: 34 },
-    head: [['Semana', 'Proyecto', '%', 'Semáforo', 'Avance semanal', 'Hitos semanal', 'Riesgo potencial', 'Registrado por']],
-    body: rows.map(r => [r.semana + '\n' + weekRange(r.semana), r.proyectoId, r.porcentaje + '%', r.semaforo, trunc(r.avance, 700), trunc(r.hitosSemanal, 400), trunc(r.riesgo, 400), r.usuario + '\n' + fmtFecha(r.fecha)]),
+    head: [['Semana', 'Proyecto', '%', 'Semáforo', 'Avance semanal', 'Actividades (semana)', 'Riesgo potencial', 'Registrado por']],
+    body: rows.map(r => [r.semana + '\n' + weekRange(r.semana), r.proyectoId, r.porcentaje + '%', r.semaforo, trunc(r.avance, 700), trunc(fmtLista(r.actividadesSemana, actividadTxt), 400), trunc(r.riesgo, 400), r.usuario + '\n' + fmtFecha(r.fecha)]),
     styles: { fontSize: 7.5, cellPadding: 3, overflow: 'linebreak', valign: 'top' },
     headStyles: { fillColor: [87, 82, 78], textColor: 255 },
     columnStyles: { 0: { cellWidth: 55 }, 1: { cellWidth: 70 }, 2: { cellWidth: 28 }, 3: { cellWidth: 42 }, 7: { cellWidth: 70 } }
@@ -567,13 +637,27 @@ function fichaPdf(r) {
     ['Fechas de inicio y fin', fmtDia(r.fechaInicio) + ' al ' + fmtDia(r.fechaFin)], ['Ubicación', ubicacionTxt(r) || '-'],
     ['Proyecto(s) estructurantes y de prioridad', r.estructurantes], ['Monto de inversión actualizado', montosTxt || '-'],
     sec('2. ESTADO SITUACIONAL DEL PROYECTO'), ['Estado situacional', r.estado || '-'],
-    sec('3. HITOS PROGRAMADOS'),
-    ['Hitos programados 4.º semestre 2026', r.hitosSemestre || '-'], ['Hitos programados semanal', r.hitosSemanal || '-'],
     ['Avance semanal', `${r.avance}\n\nAvance: ${r.porcentaje}%   |   Semáforo: ${r.semaforo}`],
     ['Evidencia', linksOf(r.evidencia).join('\n') || '-'], ['Riesgo potencial', r.riesgo || '-'], ['Medidas de mitigación', r.medidas || '-']
   ];
   doc.autoTable({ startY: 84, body, theme: 'grid', margin: { left: 40, right: 40, bottom: 34 }, styles: { fontSize: 8.5, cellPadding: 4, overflow: 'linebreak', valign: 'top', lineColor: [190, 190, 190] },
     columnStyles: { 0: { cellWidth: 125, fontStyle: 'bold', fillColor: [238, 242, 248] } } });
+  const tabla3 = (titulo, y, head, filas) => {
+    doc.setFont('helvetica', 'bold').setFontSize(9.5).setTextColor(255).setFillColor(87, 82, 78).rect(40, y, W - 80, 16, 'F');
+    doc.text(titulo, 44, y + 11);
+    doc.autoTable({ startY: y + 16, head: [head], body: filas.length ? filas : [head.map(() => '-')], theme: 'grid', margin: { left: 40, right: 40, bottom: 34 },
+      styles: { fontSize: 7.6, cellPadding: 3, overflow: 'linebreak', valign: 'top', lineColor: [190, 190, 190] }, headStyles: { fillColor: [238, 242, 248], textColor: 20, fontStyle: 'bold' } });
+    return doc.lastAutoTable.finalY;
+  };
+  let y3 = doc.lastAutoTable.finalY + 14;
+  if (y3 > 680) { doc.addPage(); y3 = 40; }
+  doc.setFont('helvetica', 'bold').setFontSize(10.5).setTextColor(0).text('3. HITOS PROGRAMADOS', 40, y3); y3 += 10;
+  y3 = tabla3('Principales hitos — 4.º semestre 2026', y3, ['N°', 'Hito', 'Responsable', 'Días', 'Inicio', 'Fin', 'Resp. directo', 'Avance %'],
+    (r.hitosSemestre || []).map((h, i) => [i + 1, h.hito || '-', h.responsable || '-', h.dias || '-', fmtDia(h.inicio), fmtDia(h.fin), h.respDirecto || '-', (h.avance !== '' && h.avance != null) ? h.avance + '%' : '-'])) + 12;
+  y3 = tabla3('Actividades programadas de la semana', y3, ['N°', 'Actividad', 'Responsable', 'Comentario'],
+    (r.actividadesSemana || []).map((a, i) => [i + 1, a.actividad || '-', a.responsable || '-', a.comentario || '-'])) + 12;
+  y3 = tabla3('Avance semanal (detalle)', y3, ['N°', 'Actividad (semana anterior)', 'Cumplimiento / comentario', 'Responsable', 'Evidencia'],
+    (r.avanceDetalle || []).map((v, i) => [i + 1, v.actividad || '-', v.cumplimiento || '-', v.responsable || '-', v.evidencia || '-']));
   doc.setFontSize(8).setTextColor(120);
   doc.text(`Registrado por ${r.usuario} el ${fmtFecha(r.fecha)} - N.º ${r.id}`, 40, doc.lastAutoTable.finalY + 16);
   pieDePagina(doc);
@@ -627,12 +711,12 @@ function generarPpt() {
     let sl = pptx.addSlide(); cab(sl, r.proyectoId, trunc(r.programa, 150));
     sl.addText(chip, { x: W - 3.6, y: 1.0, w: 3.2, h: 0.4, fontSize: 14, bold: true, align: 'right', color: COL[r.semaforo] || COL.gris });
     box(sl, 'Avance semanal', r.avance, 0.4, 1.5, 6.2, 2.7, 13);
-    box(sl, 'Hitos programados (semana)', r.hitosSemanal, 0.4, 4.3, 6.2, 2.7, 13);
+    box(sl, 'Actividades programadas (semana)', fmtLista(r.actividadesSemana, actividadTxt), 0.4, 4.3, 6.2, 2.7, 13);
     box(sl, 'Riesgo potencial', r.riesgo, 6.8, 1.5, 6.1, 2.7, 12);
     box(sl, 'Medidas de mitigación', r.medidas, 6.8, 4.3, 6.1, 2.7, 12);
     sl = pptx.addSlide(); cab(sl, r.proyectoId + ' - Situación y hitos', trunc(r.programa, 150));
     box(sl, 'Estado situacional', r.estado, 0.4, 1.15, 6.2, 5.35, 12);
-    box(sl, 'Hitos programados 4.º semestre 2026', r.hitosSemestre, 6.8, 1.15, 6.1, 5.35, 12);
+    box(sl, 'Hitos programados 4.º semestre 2026', fmtLista(r.hitosSemestre, hitoTxt), 6.8, 1.15, 6.1, 5.35, 12);
     const nEv = linksOf(r.evidencia).length;
     sl.addText(`${r.estadoProyecto ? 'Estado: ' + r.estadoProyecto + '   ·   ' : ''}${ubicacionTxt(r) ? 'Ubicación: ' + [r.distrito, r.provincia, r.departamento].filter(Boolean).join(', ') + '   ·   ' : ''}Evidencias: ${nEv}   ·   Registrado por ${r.usuario} el ${fmtFecha(r.fecha)}`, { x: 0.4, y: 6.6, w: W - 0.8, h: 0.35, fontSize: 10, color: COL.gris });
   });
@@ -707,7 +791,11 @@ function generarEjemplos() {
     const f = d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
     const pct = Math.min(100, 20 + (4 - w) * rnd(6, 14) + i * 5);
     db.registros.push({ id: Math.random().toString(16).slice(2, 10).toUpperCase(), fecha: f + 'T09:00:00', semana: isoWeek(f), proyectoId: c.id, usuario: 'Ejemplo', estadoProyecto: 'En Ejecución', departamento: 'Loreto', provincia: 'Maynas', distrito: 'Belen', programa: c.programa, cui: c.cui, estructurantes: c.estructurantes, montos: c.montos,
-      estado: 'Texto de ejemplo del estado situacional.', hitosSemestre: '* Hito de ejemplo 1\n* Hito de ejemplo 2', hitosSemanal: '* Coordinación con entidades', avance: 'Avance de ejemplo de la semana ' + (4 - w) + '.', porcentaje: pct,
+      estado: 'Texto de ejemplo del estado situacional.',
+      hitosSemestre: [{ hito: 'Hito de ejemplo 1', responsable: 'Equipo técnico', dias: 30, inicio: f, fin: f, respDirecto: 'Coordinador', avance: Math.min(100, pct) }],
+      actividadesSemana: [{ actividad: 'Coordinación con entidades', responsable: 'Equipo técnico', comentario: 'Ejemplo' }],
+      avanceDetalle: [{ actividad: 'Aprobación del 1er entregable', cumplimiento: 'Cumplido', responsable: 'Equipo técnico', evidencia: '' }],
+      avance: 'Avance de ejemplo de la semana ' + (4 - w) + '.', porcentaje: pct,
       semaforo: (w + i) % 5 === 0 ? 'Rojo' : (w + i) % 3 === 0 ? 'Ámbar' : 'Verde', evidencia: '', riesgo: 'Riesgo de ejemplo.', medidas: 'Medida de ejemplo.' });
   });
   Demo.persist();
@@ -747,6 +835,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   $('#fDist').addEventListener('change', () => { const d = distSel(); if (d) fijarPunto(d[1], d[2], true); });
   $('#btnClearPoint').onclick = limpiarPunto;
   $('#addMonto').onclick = () => $('#montosBody').appendChild(montoRow());
+  $('#addHito').onclick = () => { $('#hitosBody').appendChild(hitoRow()); renumerar($('#hitosBody')); };
+  $('#addActividad').onclick = () => { $('#actividadesBody').appendChild(actividadRow()); renumerar($('#actividadesBody')); };
+  $('#addAvanceItem').onclick = () => { $('#avanceDetalleBody').appendChild(avanceRow()); renumerar($('#avanceDetalleBody')); };
   $('#fPct').addEventListener('input', e => { $('#fPctOut').textContent = e.target.value + '%'; });
   $('#btnNext').onclick = () => irAPaso(form.paso + 1);
   $('#btnPrev').onclick = () => mostrarPaso(form.paso - 1, true);
