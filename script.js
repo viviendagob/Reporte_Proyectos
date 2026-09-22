@@ -79,7 +79,12 @@ const Demo = {
     return [
       { id: 'BELEN-VARILLALITO', programa: 'Habilitación Urbana para la reubicación de la población de la zona baja de Belén, en el predio Varillalito, distrito de San Juan Bautista, provincia de Maynas, departamento de Loreto', cui: 'Prog-03-2015-SNIP',
         estructurantes: 'CUI: 2300564: Creación de los servicios de agua potable y saneamiento de la Nueva Ciudad de Belén - Varillalito\nCUI: 2307577: Creación del servicio de drenaje pluvial urbano de la Nueva Ciudad de Belén - Varillalito\nCUI: 2300167: Creación de los servicios de vialidad de la Nueva Ciudad de Belén - Varillalito\nCUI: 2277384: Gestión del programa y otros',
-        montos: [{ cui: '2300564', monto: 105987017.16, etapa1: 67170344.56 }, { cui: '2300167', monto: 168291013.61, etapa1: 90701639.417 }, { cui: '2307577', monto: 49187477.12, etapa1: 17918125.11 }, { cui: '2277384', monto: 18648349.25, etapa1: 3225333.33 }] },
+        montos: [
+          { cui: '2300564', monto: 105987017.16, etapa1: 67170344.56, devengado2025: 42000000, pia2026: 18000000, pim2026: 22000000, devengadoMes: 9500000, avanceEjec: 45 },
+          { cui: '2300167', monto: 168291013.61, etapa1: 90701639.417, devengado2025: 55000000, pia2026: 24000000, pim2026: 29000000, devengadoMes: 11000000, avanceEjec: 38 },
+          { cui: '2307577', monto: 49187477.12, etapa1: 17918125.11, devengado2025: 9000000, pia2026: 6000000, pim2026: 7000000, devengadoMes: 1800000, avanceEjec: 22 },
+          { cui: '2277384', monto: 18648349.25, etapa1: 3225333.33, devengado2025: 4000000, pia2026: 2000000, pim2026: 2400000, devengadoMes: 600000, avanceEjec: 60 }
+        ] },
       { id: 'DEMO-PROYECTO-2', programa: 'Proyecto de ejemplo 2 (solo demostración)', cui: '0000001', estructurantes: 'CUI: 0000001: Ejemplo', montos: [{ cui: '0000001', monto: 1000000, etapa1: 500000 }] },
       { id: 'DEMO-PROYECTO-3', programa: 'Proyecto de ejemplo 3 (solo demostración)', cui: '0000002', estructurantes: 'CUI: 0000002: Ejemplo', montos: [{ cui: '0000002', monto: 2000000, etapa1: 900000 }] }
     ];
@@ -311,11 +316,17 @@ function limpiarPunto() {
 
 /* -- presupuesto -- */
 function montoRow(m) {
-  m = m || { cui: '', monto: '', etapa1: '' };
+  m = m || { cui: '', monto: '', etapa1: '', devengado2025: '', pia2026: '', pim2026: '', devengadoMes: '', avanceEjec: '' };
   const tr = document.createElement('tr');
-  tr.innerHTML = `<td><input type="text" class="m-cui" value="${esc(m.cui)}" placeholder="Ej.: 2300564" aria-label="CUI"></td>
-    <td><div class="money"><span>S/</span><input type="text" inputmode="decimal" class="m-monto" value="${m.monto === '' ? '' : esc(fmtNum(m.monto))}" placeholder="0.00" aria-label="Monto de inversión en soles"></div></td>
-    <td><div class="money"><span>S/</span><input type="text" inputmode="decimal" class="m-etapa" value="${m.etapa1 === '' ? '' : esc(fmtNum(m.etapa1))}" placeholder="0.00" aria-label="Monto de la etapa 1 en soles"></div></td>
+  const money = (cls, val, label) => `<td><div class="money"><span>S/</span><input type="text" inputmode="decimal" class="${cls}" value="${val === '' ? '' : esc(fmtNum(val))}" placeholder="0.00" aria-label="${label}"></div></td>`;
+  tr.innerHTML = `<td><input type="text" class="m-cui" value="${esc(m.cui)}" placeholder="Ej.: 2300564" aria-label="CUI"></td>` +
+    money('m-monto', m.monto, 'Monto de inversión en soles') +
+    money('m-etapa', m.etapa1, 'Monto de la etapa 1 en soles') +
+    money('m-dev25', m.devengado2025, 'Monto devengado acumulado al 2025') +
+    money('m-pia', m.pia2026, 'PIA 2026') +
+    money('m-pim', m.pim2026, 'PIM 2026') +
+    money('m-devmes', m.devengadoMes, 'Devengado al mes anterior') +
+    `<td><input type="text" inputmode="decimal" class="m-avance" value="${esc(m.avanceEjec)}" placeholder="0" style="width:70px;text-align:right" aria-label="Avance porcentual"></td>
     <td><button type="button" class="btn sm danger" aria-label="Quitar fila">✕</button></td>`;
   tr.querySelector('button').onclick = () => { tr.remove(); totales(); };
   tr.querySelectorAll('.money input').forEach(i => {
@@ -326,12 +337,20 @@ function montoRow(m) {
   return tr;
 }
 function leerMontos() {
-  return $$('#montosBody tr').map(tr => ({ cui: $('.m-cui', tr).value.trim(), monto: parseMoney($('.m-monto', tr).value), etapa1: parseMoney($('.m-etapa', tr).value) })).filter(m => m.cui || m.monto || m.etapa1);
+  return $$('#montosBody tr').map(tr => ({
+    cui: $('.m-cui', tr).value.trim(), monto: parseMoney($('.m-monto', tr).value), etapa1: parseMoney($('.m-etapa', tr).value),
+    devengado2025: parseMoney($('.m-dev25', tr).value), pia2026: parseMoney($('.m-pia', tr).value), pim2026: parseMoney($('.m-pim', tr).value),
+    devengadoMes: parseMoney($('.m-devmes', tr).value), avanceEjec: $('.m-avance', tr).value.trim()
+  })).filter(m => m.cui || m.monto || m.etapa1 || m.devengado2025 || m.pia2026 || m.pim2026 || m.devengadoMes || m.avanceEjec);
 }
 function totales() {
   const ms = leerMontos();
   $('#totMonto').textContent = fmtMoney(ms.reduce((a, m) => a + m.monto, 0));
   $('#totEtapa').textContent = fmtMoney(ms.reduce((a, m) => a + m.etapa1, 0));
+  $('#totDev25').textContent = fmtMoney(ms.reduce((a, m) => a + m.devengado2025, 0));
+  $('#totPia').textContent = fmtMoney(ms.reduce((a, m) => a + m.pia2026, 0));
+  $('#totPim').textContent = fmtMoney(ms.reduce((a, m) => a + m.pim2026, 0));
+  $('#totDevMes').textContent = fmtMoney(ms.reduce((a, m) => a + m.devengadoMes, 0));
 }
 
 /* -- hitos, actividades y avance semanal (tablas dinámicas) -- */
@@ -593,10 +612,14 @@ function exportarExcel() {
   ws['!cols'] = [10, 14, 22, 40, 18, 14, 12, 12, 14, 14, 16, 11, 11, 9, 10, 60, 45, 45, 45, 60, 50, 50, 40, 24, 16, 11].map(w => ({ wch: w }));
   ws['!freeze'] = { xSplit: 0, ySplit: 1 };
   const montos = [];
-  rows.forEach(r => (r.montos || []).forEach(m => montos.push({ 'Semana': r.semana, 'Proyecto': r.proyectoId, 'CUI': m.cui, 'Monto de inversión (S/)': m.monto, 'Monto Etapa 1 (S/)': m.etapa1 })));
+  rows.forEach(r => (r.montos || []).forEach(m => montos.push({
+    'Semana': r.semana, 'Proyecto': r.proyectoId, 'CUI': m.cui, 'Monto de inversión (S/)': m.monto, 'Monto Etapa 1 (S/)': m.etapa1,
+    'Devengado acum. 2025 (S/)': m.devengado2025, 'PIA 2026 (S/)': m.pia2026, 'PIM 2026 (S/)': m.pim2026,
+    'Devengado mes anterior (S/)': m.devengadoMes, 'Avance %': m.avanceEjec
+  })));
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Registros');
-  if (montos.length) { const w2 = XLSX.utils.json_to_sheet(montos); w2['!cols'] = [10, 22, 14, 24, 22].map(w => ({ wch: w })); XLSX.utils.book_append_sheet(wb, w2, 'Montos'); }
+  if (montos.length) { const w2 = XLSX.utils.json_to_sheet(montos); w2['!cols'] = [10, 22, 14, 24, 22, 22, 16, 16, 24, 11].map(w => ({ wch: w })); XLSX.utils.book_append_sheet(wb, w2, 'Montos'); }
   XLSX.writeFile(wb, `Registros_Avances_${hoy()}.xlsx`);
 }
 
@@ -629,7 +652,12 @@ function fichaPdf(r) {
   doc.text(doc.splitTextToSize(window.CONFIG.ENTIDAD, W - 80), W / 2, 36, { align: 'center' });
   doc.setFontSize(12).text(`REPORTE DE AVANCE - SEMANA ${r.semana} (${weekRange(r.semana)})`, W / 2, 68, { align: 'center' });
   const sec = t => [{ content: t, colSpan: 2, styles: { fillColor: [87, 82, 78], textColor: 255, fontStyle: 'bold' } }];
-  const montosTxt = (r.montos || []).map(m => `CUI ${m.cui}:  Monto ${fmtMoney(m.monto)}   |   Etapa 1 ${fmtMoney(m.etapa1)}`).concat(
+  const montoLinea = m => [
+    `CUI ${m.cui}:  Monto ${fmtMoney(m.monto)}   |   Etapa 1 ${fmtMoney(m.etapa1)}`,
+    (m.devengado2025 || m.pia2026 || m.pim2026 || m.devengadoMes || m.avanceEjec) ?
+      `   Devengado 2025 ${fmtMoney(m.devengado2025)}  |  PIA 2026 ${fmtMoney(m.pia2026)}  |  PIM 2026 ${fmtMoney(m.pim2026)}  |  Devengado mes anterior ${fmtMoney(m.devengadoMes)}  |  Avance ${m.avanceEjec || 0}%` : null
+  ].filter(Boolean).join('\n');
+  const montosTxt = (r.montos || []).map(montoLinea).concat(
     r.montos && r.montos.length ? [`TOTAL:  ${fmtMoney(r.montos.reduce((a, m) => a + m.monto, 0))}   |   Etapa 1 ${fmtMoney(r.montos.reduce((a, m) => a + m.etapa1, 0))}`] : []).join('\n');
   const body = [
     sec('1. DATOS GENERALES DEL PROYECTO O PROGRAMA'),
