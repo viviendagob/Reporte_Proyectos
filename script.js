@@ -7,7 +7,7 @@ const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const DEMO = !window.CONFIG.API_URL;
-const state = { code: '', sesion: null, catalogo: [], registros: [], charts: {} };
+const state = { usuario: '', token: '', sesion: null, catalogo: [], usuarios: [], registros: [], charts: {} };
 
 /* ---------- utilidades ---------- */
 const parseMoney = s => { const n = Number(String(s == null ? '' : s).replace(/[^\d.\-]/g, '')); return isFinite(n) ? n : 0; };
@@ -77,12 +77,18 @@ const Demo = {
     ];
   },
   async call(action, p) {
-    const codes = { ADMIN: { nombre: 'Administrador (demo)', rol: 'admin', proyectos: ['*'] }, BELEN: { nombre: 'Responsable Belén (demo)', rol: 'usuario', proyectos: ['BELEN-VARILLALITO'] } };
-    const s = codes[String(p.code || state.code).toUpperCase()];
-    if (!s) return { ok: false, error: 'Código de acceso no válido' };
+    const users = { admin: { clave: 'admin', s: { usuario: 'admin', nombre: 'Administrador (demo)', rol: 'admin', proyectos: ['*'] } },
+      belen: { clave: 'belen', s: { usuario: 'belen', nombre: 'Responsable Belén (demo)', rol: 'usuario', proyectos: ['BELEN-VARILLALITO'] } },
+      demo2: { clave: 'demo2', s: { usuario: 'demo2', nombre: 'Responsable Proyecto 2 (demo)', rol: 'usuario', proyectos: ['DEMO-PROYECTO-2'] } } };
+    const u = users[String(p.usuario || '').trim().toLowerCase()];
+    if (action === 'login' && (!u || u.clave !== p.clave)) return { ok: false, error: 'Usuario o contraseña incorrectos' };
+    if (action !== 'login' && (!u || p.token !== 'demo-' + u.s.usuario)) return { ok: false, error: 'Sesión vencida o no válida. Ingrese nuevamente.' };
+    const s = u.s;
     const ver = id => s.rol === 'admin' || s.proyectos.includes(id);
     const db = this.load();
-    if (action === 'login') return { ok: true, sesion: s, catalogo: this.catalogo().filter(c => ver(c.id)) };
+    if (action === 'login' || action === 'sesion') return { ok: true, sesion: s, token: 'demo-' + s.usuario, catalogo: this.catalogo().filter(c => ver(c.id)),
+      registros: db.registros.filter(r => ver(r.proyectoId)),
+      usuarios: s.rol === 'admin' ? Object.values(users).map(x => x.s) : undefined };
     if (action === 'list') return { ok: true, registros: db.registros.filter(r => ver(r.proyectoId)) };
     if (action === 'save') {
       const r = p.registro;
@@ -105,10 +111,10 @@ const Demo = {
 
 async function api(action, payload) {
   payload = payload || {};
-  if (DEMO) return Demo.call(action, Object.assign({ code: state.code }, payload));
+  if (DEMO) return Demo.call(action, Object.assign({ usuario: state.usuario, token: state.token }, payload));
   const url = window.CONFIG.API_URL;
-  const body = Object.assign({ action, code: state.code }, payload);
-  const soloLectura = action === 'login' || action === 'list';
+  const body = Object.assign({ action, usuario: state.usuario, token: state.token }, payload);
+  const soloLectura = action === 'login' || action === 'list' || action === 'sesion';
   const leer = async r => {
     const t = await r.text();
     try { return JSON.parse(t); } catch (e) { throw new Error('respuesta inesperada del servidor: ' + t.slice(0, 100).replace(/\s+/g, ' ')); }
@@ -118,7 +124,7 @@ async function api(action, payload) {
     return await leer(r);
   } catch (e1) {
     if (soloLectura) { // reintento por GET para consultas
-      try { return await leer(await fetch(url + '?' + new URLSearchParams({ action, code: state.code }))); }
+      try { return await leer(await fetch(url + '?' + new URLSearchParams(Object.assign({ action, usuario: state.usuario, token: state.token }, action === 'login' ? { clave: payload.clave } : {})))); }
       catch (e2) { return { ok: false, error: 'No se pudo conectar con el servidor (' + e2.message + ').' }; }
     }
     return { ok: false, error: 'No se pudo conectar con el servidor (' + e1.message + ').' };
@@ -126,19 +132,21 @@ async function api(action, payload) {
 }
 
 /* ---------- login ---------- */
-async function entrar(code, silencioso) {
-  state.code = code.trim();
-  const r = await api('login');
-  if (!r.ok) { state.code = ''; store.del('code'); if (!silencioso) setMsg($('#loginMsg'), 'err', r.error); return false; }
-  state.sesion = r.sesion; state.catalogo = r.catalogo;
-  store.set('code', state.code);
-  $('#loginView').classList.add('hidden'); $('#appView').classList.remove('hidden');
+async function entrar(usuario, clave, silencioso) {
+  state.usuario = String(usuario || '').trim(); if (clave !== null) state.token = '';
+  const r = clave === null ? await api('sesion') : await api('login', { clave });
+  if (!r.ok) { state.usuario = ''; state.token = ''; store.del('usuario'); store.del('token'); if (!silencioso) setMsg($('#loginMsg'), 'err', r.error); return false; }
+  state.sesion = r.sesion; state.catalogo = r.catalogo; state.usuarios = r.usuarios || []; state.token = r.token; state.usuario = r.sesion.usuario;
+  state.registros = r.registros || []; poblarFiltros(); // ya vienen en la respuesta de login/sesion: un solo viaje al servidor
+  store.set('usuario', state.usuario); store.set('token', state.token);
+  $('#appView').classList.remove('hidden'); $('#loginView').classList.add('hidden');
   $('#whoName').textContent = `${r.sesion.nombre} · ${r.sesion.rol === 'admin' ? 'Administrador' : 'Usuario'}`;
+  $('#whoAvatar').textContent = String(r.sesion.nombre || '?').trim().split(/\s+/).slice(0, 2).map(w => w[0]).join('').toUpperCase();
   const admin = r.sesion.rol === 'admin';
   $$('[data-admin]').forEach(b => b.classList.toggle('hidden', !admin));
   $('#btnDemoData').classList.toggle('hidden', !(DEMO && admin));
-  await cargarRegistros();
   await initFormulario();
+  activarTab(admin ? 'proj' : 'form');
   return true;
 }
 async function cargarRegistros() {
@@ -150,7 +158,8 @@ async function cargarRegistros() {
 /* ---------- pestañas ---------- */
 function activarTab(t) {
   $$('#tabs button').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === t)));
-  ['form', 'list', 'ppt', 'dash'].forEach(x => $('#tab-' + x).classList.toggle('hidden', x !== t));
+  ['proj', 'form', 'list', 'ppt', 'dash'].forEach(x => $('#tab-' + x).classList.toggle('hidden', x !== t));
+  if (t === 'proj') renderProyectos();
   if (t === 'list') renderLista();
   if (t === 'dash') renderDashboard();
 }
@@ -382,7 +391,7 @@ async function enviarFormulario(e) {
   e.preventDefault();
   const msg = $('#saveMsg');
   for (let i = 1; i <= 4; i++) if (!validarPaso(i)) { mostrarPaso(i, true); return setMsg(msg, 'err', `Revise los campos marcados en el paso ${i} (${PASOS[i - 1]}).`); }
-  const btn = $('#saveBtn'); btn.disabled = true; setMsg(msg, 'info', 'Guardando…');
+  const btn = $('#saveBtn'); btn.disabled = true; btn.classList.add('loading'); setMsg(msg, 'info', 'Guardando…');
   try {
     const archivos = [];
     for (const f of form.archivos) archivos.push({ nombre: f.name, tipo: f.type, base64: DEMO ? '' : await toB64(f) });
@@ -403,7 +412,7 @@ async function enviarFormulario(e) {
     toast(`Reporte registrado (N.º ${r.id}, ${registro.semana}). Ya aparece en el listado.`, 'ok');
   } catch (err) {
     setMsg(msg, 'err', 'No se pudo guardar: ' + err.message);
-  } finally { btn.disabled = false; }
+  } finally { btn.disabled = false; btn.classList.remove('loading'); }
 }
 
 /* ---------- filtros y listado ---------- */
@@ -439,6 +448,52 @@ function renderLista() {
         <button class="btn sm" data-act="ficha" data-id="${esc(r.id)}">Ficha PDF</button>
         ${admin ? `<button class="btn sm danger" data-act="del" data-id="${esc(r.id)}">Eliminar</button>` : ''}</td></tr>`).join('')
       : `<tr><td colspan="8" class="empty">No hay registros con estos filtros.</td></tr>`) + '</tbody>';
+}
+/* ---------- panel de proyectos (administrador) ---------- */
+function poblarSemanasProy() {
+  const act = isoWeek(hoy());
+  const semanas = Array.from(new Set([act].concat(semanasDisponibles(state.registros)))).sort().reverse();
+  const el = $('#pjSemana'), v = el.value;
+  el.innerHTML = semanas.map(x => `<option value="${esc(x)}">${esc(semLabel(x))}${x === act ? ' · actual' : ''}</option>`).join('');
+  el.value = semanas.includes(v) ? v : act;
+}
+function renderProyectos() {
+  if (!state.sesion || state.sesion.rol !== 'admin') return;
+  poblarSemanasProy();
+  const sem = $('#pjSemana').value, f = $('#pjEstado').value, q = $('#pjBuscar').value.trim().toLowerCase();
+  const todos = state.catalogo.map(c => {
+    const regs = state.registros.filter(r => r.proyectoId === c.id).sort(byFechaDesc);
+    const deSem = regs.find(r => r.semana === sem);
+    const usuarios = state.usuarios.filter(u => u.rol !== 'admin' && (u.proyectos.includes('*') || u.proyectos.includes(c.id)));
+    return { c, regs, deSem, ultimo: regs[0], usuarios };
+  });
+  const rep = todos.filter(x => x.deSem).length;
+  const rojos = todos.filter(x => x.deSem && x.deSem.semaforo === 'Rojo').length;
+  const kp = (v, l) => `<div class="kpi"><div class="v">${v}</div><div class="l">${l}</div></div>`;
+  $('#projKpis').innerHTML = kp(todos.length, 'Proyectos') + kp(rep, 'Con reporte en la semana') + kp(todos.length - rep, 'Sin reporte') + kp(rojos, 'En rojo');
+  const lista = todos.filter(x => {
+    const txt = [x.c.id, x.c.programa, x.usuarios.map(u => u.nombre + ' ' + u.usuario).join(' ')].join(' ').toLowerCase();
+    if (q && !txt.includes(q)) return false;
+    if (f === 'pend') return !x.deSem;
+    if (f === 'ok') return !!x.deSem;
+    if (f) return x.deSem && x.deSem.semaforo === f;
+    return true;
+  });
+  $('#projGrid').innerHTML = lista.length ? lista.map(x => {
+    const r = x.deSem || x.ultimo, st = x.deSem ? (x.deSem.semaforo === 'Verde' ? 'ok' : x.deSem.semaforo) : 'pend';
+    return `<article class="proj-card st-${esc(st)}">
+      <div class="proj-top"><h3>${esc(x.c.id)}</h3>${x.deSem ? '<span class="badge ok">Reportó</span>' : '<span class="badge pend">Sin reporte</span>'}</div>
+      <div class="prog">${esc(trunc((r && r.programa) || x.c.programa, 140))}</div>
+      ${r ? `<div><div class="bar" aria-hidden="true"><i style="width:${Math.min(100, Math.max(0, Number(r.porcentaje) || 0))}%"></i></div>
+        <div class="proj-meta" style="margin-top:6px"><span><b>${esc(r.porcentaje)}%</b> de avance · ${pill(r.semaforo)}</span>
+        <span>${x.deSem ? 'Semana ' + esc(r.semana) : 'Último reporte: ' + esc(r.semana)} · ${esc(fmtFecha(r.fecha))}</span>
+        <span>${esc([r.estadoProyecto, ubicacionTxt(r).replace(/ \(.*\)$/, '')].filter(Boolean).join(' · ') || '—')}</span>
+        <span>${esc(trunc(r.avance, 130))}</span></div></div>` : '<div class="proj-meta">Aún no hay reportes de este proyecto.</div>'}
+      <div class="proj-users">${x.usuarios.length ? x.usuarios.map(u => `<span class="chip" title="${esc(u.usuario)}">${esc(u.nombre)}</span>`).join('') : '<span class="muted small">Sin usuario asignado</span>'}</div>
+      <div class="proj-actions">
+        ${r ? `<button class="btn sm primary" data-pact="ver" data-id="${esc(r.id)}">Ver reporte</button><button class="btn sm" data-pact="ficha" data-id="${esc(r.id)}">Ficha PDF</button>` : ''}
+        <button class="btn sm" data-pact="hist" data-pid="${esc(x.c.id)}">Historial (${x.regs.length})</button></div>
+    </article>`; }).join('') : '<div class="empty card">No hay proyectos con estos filtros.</div>';
 }
 function verRegistro(r) {
   const ev = linksOf(r.evidencia).map(u => /^https?:/.test(u) ? `<a href="${esc(u)}" target="_blank" rel="noopener noreferrer">${esc(u)}</a>` : esc(u)).join('<br>') || '—';
@@ -651,7 +706,7 @@ function generarEjemplos() {
     const d = new Date(hoyD); d.setDate(d.getDate() - 7 * w);
     const f = d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
     const pct = Math.min(100, 20 + (4 - w) * rnd(6, 14) + i * 5);
-    db.registros.push({ id: Math.random().toString(16).slice(2, 10).toUpperCase(), fecha: f + 'T09:00:00', semana: isoWeek(f), proyectoId: c.id, usuario: 'Ejemplo', estadoProyecto: 'Ejecución', departamento: 'Loreto', provincia: 'Maynas', distrito: 'Belen', programa: c.programa, cui: c.cui, estructurantes: c.estructurantes, montos: c.montos,
+    db.registros.push({ id: Math.random().toString(16).slice(2, 10).toUpperCase(), fecha: f + 'T09:00:00', semana: isoWeek(f), proyectoId: c.id, usuario: 'Ejemplo', estadoProyecto: 'En Ejecución', departamento: 'Loreto', provincia: 'Maynas', distrito: 'Belen', programa: c.programa, cui: c.cui, estructurantes: c.estructurantes, montos: c.montos,
       estado: 'Texto de ejemplo del estado situacional.', hitosSemestre: '* Hito de ejemplo 1\n* Hito de ejemplo 2', hitosSemanal: '* Coordinación con entidades', avance: 'Avance de ejemplo de la semana ' + (4 - w) + '.', porcentaje: pct,
       semaforo: (w + i) % 5 === 0 ? 'Rojo' : (w + i) % 3 === 0 ? 'Ámbar' : 'Verde', evidencia: '', riesgo: 'Riesgo de ejemplo.', medidas: 'Medida de ejemplo.' });
   });
@@ -661,9 +716,27 @@ function generarEjemplos() {
 /* ---------- eventos ---------- */
 document.addEventListener('DOMContentLoaded', async () => {
   if (window.CONFIG.LOGO_URL) $$('#logoImg, #logoLogin').forEach(i => { i.src = window.CONFIG.LOGO_URL; i.classList.remove('hidden'); });
-  if (DEMO) { $('#demoBanner').classList.remove('hidden'); $('#demoHint').textContent = 'Demostración: use ADMIN (administrador) o BELEN (usuario).'; }
-  $('#loginForm').addEventListener('submit', async e => { e.preventDefault(); const b = $('#loginBtn'); b.disabled = true; setMsg($('#loginMsg'), 'info', 'Verificando…'); await entrar($('#codeInput').value); b.disabled = false; });
-  $('#logoutBtn').onclick = () => { store.del('code'); location.reload(); };
+  if (DEMO) { $('#demoBanner').classList.remove('hidden'); $('#demoHint').textContent = 'Demostración: usuario admin / contraseña admin (administrador), o belen / belen (usuario).'; }
+  $('#loginForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const b = $('#loginBtn');
+    b.disabled = true; b.classList.add('loading'); setMsg($('#loginMsg'), '', '');
+    $('#userInput').disabled = true; $('#passInput').disabled = true;
+    const ok = await entrar($('#userInput').value, $('#passInput').value);
+    b.disabled = false; b.classList.remove('loading');
+    $('#userInput').disabled = false; $('#passInput').disabled = false;
+    if (!ok) $('#passInput').focus();
+  });
+  $('#togglePass').onclick = () => { const i = $('#passInput'), ver = i.type === 'password'; i.type = ver ? 'text' : 'password'; $('#togglePass').textContent = ver ? 'Ocultar' : 'Ver'; };
+  $('#logoutBtn').onclick = () => { store.del('usuario'); store.del('token'); location.reload(); };
+  ['#pjSemana', '#pjEstado'].forEach(x => $(x).addEventListener('change', renderProyectos));
+  $('#pjBuscar').addEventListener('input', renderProyectos);
+  $('#projGrid').addEventListener('click', e => {
+    const b = e.target.closest('button[data-pact]'); if (!b) return;
+    if (b.dataset.pact === 'hist') { $('#lProyecto').value = b.dataset.pid; $('#lSemana').value = ''; $('#lBuscar').value = ''; activarTab('list'); return; }
+    const r = state.registros.find(x => String(x.id) === b.dataset.id); if (!r) return;
+    b.dataset.pact === 'ver' ? verRegistro(r) : fichaPdf(r);
+  });
   $('#tabs').addEventListener('click', e => { const b = e.target.closest('button[data-tab]'); if (b) activarTab(b.dataset.tab); });
   $('#fProyecto').addEventListener('change', precargarProyecto);
   $('#fFecha').addEventListener('change', () => { actualizarSemana(); marcar($('#fFecha'), $('#fFecha').value ? '' : 'Indique la fecha de corte del reporte.'); });
@@ -702,5 +775,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     else if (b.dataset.act === 'del' && confirm('¿Eliminar este registro de forma permanente?')) { const x = await api('delete', { id: r.id }); if (x.ok) { await cargarRegistros(); renderLista(); } else alert(x.error); }
   });
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { if (!$('#tab-dash').classList.contains('hidden')) renderDashboard(); });
-  const guardado = store.get('code'); if (guardado) entrar(guardado, true);
+  const gu = store.get('usuario'), gt = store.get('token');
+  if (gu && gt) { state.token = gt; entrar(gu, null, true); }
 });
