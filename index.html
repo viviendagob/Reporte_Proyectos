@@ -28,7 +28,7 @@
     <div class="hero-inner">
       <div class="hero-brand">
         <img id="logoLogin" class="logo hidden" alt="Logotipo institucional">
-        <span class="hero-tag">UNINDEUS · PROGRAMA NUESTRAS CIUDADES</span>
+        <span class="hero-tag">UIDUS · PROGRAMA NUESTRAS CIUDADES</span>
       </div>
       <h1>Reporte semanal de avances de proyectos</h1>
       <p class="hero-lead">Registre el avance de su proyecto en cinco pasos y mantenga informada a la Unidad en un solo lugar.</p>
@@ -235,14 +235,7 @@
         <fieldset class="step-panel hidden" data-step="4">
           <legend class="hidden">Cronograma y avance</legend>
           <div class="card">
-            <div class="card-head"><h2>Cronograma</h2></div>
-            <div class="grid g2">
-              <div class="field"><label for="fHitosSem">Hitos programados 4.º semestre 2026</label><textarea id="fHitosSem" class="tall"></textarea></div>
-              <div class="field"><label for="fHitosSemanal">Hitos programados de la semana</label><textarea id="fHitosSemanal" class="tall"></textarea></div>
-            </div>
-          </div>
-          <div class="card">
-            <div class="card-head"><h2>Situación y avance</h2></div>
+            <div class="card-head"><h2>Situación y avance</h2><span class="sub">2. Estado situacional</span></div>
             <div class="field"><label for="fEstado">Estado situacional</label><textarea id="fEstado" class="tall"></textarea></div>
             <div class="field">
               <label for="fAvance">Avance semanal <span class="req">*</span></label>
@@ -263,6 +256,37 @@
                 </div>
               </div>
             </div>
+          </div>
+          <div class="card">
+            <div class="card-head"><h2>Hitos programados</h2><span class="sub">3. 4.º semestre, actividades y avance de la semana</span></div>
+
+            <h3 style="margin-bottom:8px">Principales hitos — 4.º semestre 2026</h3>
+            <div class="table-scroll">
+              <table class="montos" id="tblHitos" style="min-width:980px">
+                <thead><tr><th>N°</th><th>Hito</th><th>Responsable</th><th>Días cal.</th><th>Plazo inicio</th><th>Plazo fin</th><th>Resp.(s) directo</th><th>Avance %</th><th></th></tr></thead>
+                <tbody id="hitosBody"></tbody>
+              </table>
+            </div>
+            <button type="button" class="btn sm secondary" id="addHito" style="margin-top:8px">+ Agregar hito</button>
+
+            <h3 style="margin:22px 0 8px">Actividades programadas de la semana</h3>
+            <div class="table-scroll">
+              <table class="montos" id="tblActividades" style="min-width:700px">
+                <thead><tr><th>N°</th><th>Actividad semanal</th><th>Responsable</th><th>Comentario</th><th></th></tr></thead>
+                <tbody id="actividadesBody"></tbody>
+              </table>
+            </div>
+            <button type="button" class="btn sm secondary" id="addActividad" style="margin-top:8px">+ Agregar actividad</button>
+
+            <h3 style="margin:22px 0 8px">Avance semanal (detalle)</h3>
+            <div class="hint" style="margin:-2px 0 8px">Detalle de lo ejecutado la semana anterior. El resumen y el % de avance van arriba, en "Situación y avance".</div>
+            <div class="table-scroll">
+              <table class="montos" id="tblAvanceDet" style="min-width:820px">
+                <thead><tr><th>N°</th><th>Actividad (semana anterior)</th><th>Cumplimiento / comentario</th><th>Responsable</th><th>Evidencia (enlace)</th><th></th></tr></thead>
+                <tbody id="avanceDetalleBody"></tbody>
+              </table>
+            </div>
+            <button type="button" class="btn sm secondary" id="addAvanceItem" style="margin-top:8px">+ Agregar ítem</button>
           </div>
           <div class="card">
             <div class="card-head"><h2>Riesgos</h2></div>
