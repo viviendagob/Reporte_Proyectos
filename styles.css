@@ -176,6 +176,9 @@ li.active .step-label { color: var(--text); font-weight: 700; }
 table.montos { width: 100%; border-collapse: collapse; min-width: 560px; }
 table.montos th { text-align: left; font-size: .78rem; color: var(--muted); padding: 4px 6px; font-weight: 600; }
 table.montos td { padding: 4px; }
+table.montos th { white-space: nowrap; }
+table.montos td input, table.montos td select { padding: 6px 8px; font-size: .86rem; }
+table.montos td input[type=number] { text-align: right; }
 table.montos tfoot td { font-weight: 700; padding: 10px 6px; font-variant-numeric: tabular-nums; }
 .money { display: flex; }
 .money > span { display: grid; place-items: center; padding: 0 12px; background: var(--surface-2); border: 1px solid var(--border); border-right: 0; border-radius: 8px 0 0 8px; color: var(--text-2); font-weight: 600; font-size: .85rem; }
