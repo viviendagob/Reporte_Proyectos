@@ -23,23 +23,45 @@
 </div>
 
 <!-- ACCESO -->
-<div id="loginView" class="login">
-  <div class="card">
-    <div class="brand" style="margin-bottom:14px">
-      <img id="logoLogin" class="logo hidden" alt="Logotipo institucional">
-      <span class="brand-mark" aria-hidden="true"></span>
-      <div class="brand-text"><small>UIDUS · PROGRAMA NUESTRAS CIUDADES</small><strong>Registro de proyectos</strong></div>
-    </div>
-    <form id="loginForm">
-      <div class="field">
-        <label for="codeInput">Código de acceso</label>
-        <input id="codeInput" type="password" autocomplete="off" required placeholder="Ej.: BEL-XXXXXX">
+<div id="loginView" class="login-page">
+  <aside class="login-hero" aria-hidden="false">
+    <div class="hero-inner">
+      <div class="hero-brand">
+        <img id="logoLogin" class="logo hidden" alt="Logotipo institucional">
+        <span class="hero-tag">UIDUS · PROGRAMA NUESTRAS CIUDADES</span>
       </div>
-      <button class="btn primary" type="submit" id="loginBtn" style="width:100%">Ingresar</button>
-      <div id="loginMsg" role="alert"></div>
-    </form>
-    <p class="hint" id="demoHint"></p>
-  </div>
+      <h1>Reporte semanal de avances de proyectos</h1>
+      <p class="hero-lead">Registre el avance de su proyecto en cinco pasos y mantenga informada a la Unidad en un solo lugar.</p>
+      <ul class="hero-list">
+        <li><span>1</span>Complete los datos, ubicación, presupuesto y cronograma.</li>
+        <li><span>2</span>Reporte el avance de la semana con su semáforo y evidencias.</li>
+        <li><span>3</span>La Unidad consolida todo en listados, PPT y dashboard.</li>
+      </ul>
+    </div>
+    <div class="hero-shape s1"></div><div class="hero-shape s2"></div>
+  </aside>
+  <section class="login-panel">
+    <div class="login-box">
+      <div class="login-mark" aria-hidden="true"></div>
+      <h2>Iniciar sesión</h2>
+      <p class="login-sub">Ingrese con el usuario y la contraseña que le entregó la Unidad.</p>
+      <form id="loginForm" autocomplete="on">
+        <div class="field">
+          <label for="userInput">Usuario</label>
+          <div class="input-icon"><span class="ico" aria-hidden="true">&#128100;</span><input id="userInput" name="username" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" required placeholder="Ej.: belen"></div>
+        </div>
+        <div class="field">
+          <label for="passInput">Contraseña</label>
+          <div class="input-icon"><span class="ico" aria-hidden="true">&#128274;</span><input id="passInput" name="password" class="has-reveal" type="password" autocomplete="current-password" required placeholder="Su contraseña">
+            <button type="button" class="reveal" id="togglePass" aria-label="Mostrar u ocultar contraseña">Ver</button></div>
+        </div>
+        <button class="btn primary big" type="submit" id="loginBtn">Ingresar</button>
+        <div id="loginMsg" role="alert"></div>
+      </form>
+      <p class="hint" id="demoHint"></p>
+      <p class="login-foot">¿Sin acceso? Solicítelo a la administración del registro.</p>
+    </div>
+  </section>
 </div>
 
 <!-- APLICACIÓN -->
@@ -56,11 +78,24 @@
   </header>
   <main>
     <nav class="tabs" role="tablist" id="tabs">
-      <button role="tab" data-tab="form" aria-selected="true">1. Formulario</button>
-      <button role="tab" data-tab="list" aria-selected="false">2. Listado de registros</button>
-      <button role="tab" data-tab="ppt" aria-selected="false" data-admin>3. Reporte PPT</button>
-      <button role="tab" data-tab="dash" aria-selected="false" data-admin>4. Dashboard</button>
+      <button role="tab" data-tab="proj" aria-selected="false" data-admin>Proyectos</button>
+      <button role="tab" data-tab="form" aria-selected="true">Formulario</button>
+      <button role="tab" data-tab="list" aria-selected="false">Listado de registros</button>
+      <button role="tab" data-tab="ppt" aria-selected="false" data-admin>Reporte PPT</button>
+      <button role="tab" data-tab="dash" aria-selected="false" data-admin>Dashboard</button>
     </nav>
+
+    <!-- PANEL DE PROYECTOS (administrador) -->
+    <section id="tab-proj" class="hidden">
+      <div class="kpis" id="projKpis"></div>
+      <div class="card toolbar">
+        <div class="field"><label for="pjSemana">Semana</label><select id="pjSemana"></select></div>
+        <div class="field"><label for="pjEstado">Situación</label>
+          <select id="pjEstado"><option value="">Todos</option><option value="pend">Sin reporte</option><option value="ok">Con reporte</option><option value="Rojo">En rojo</option><option value="Ámbar">En ámbar</option></select></div>
+        <div class="field grow"><label for="pjBuscar">Buscar</label><input id="pjBuscar" type="search" placeholder="Proyecto o usuario"></div>
+      </div>
+      <div class="proj-grid" id="projGrid"></div>
+    </section>
 
     <!-- 1. FORMULARIO POR PASOS -->
     <section id="tab-form">
