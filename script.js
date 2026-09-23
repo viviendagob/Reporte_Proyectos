@@ -80,13 +80,13 @@ const Demo = {
       { id: 'BELEN-VARILLALITO', programa: 'Habilitación Urbana para la reubicación de la población de la zona baja de Belén, en el predio Varillalito, distrito de San Juan Bautista, provincia de Maynas, departamento de Loreto', cui: 'Prog-03-2015-SNIP',
         estructurantes: 'CUI: 2300564: Creación de los servicios de agua potable y saneamiento de la Nueva Ciudad de Belén - Varillalito\nCUI: 2307577: Creación del servicio de drenaje pluvial urbano de la Nueva Ciudad de Belén - Varillalito\nCUI: 2300167: Creación de los servicios de vialidad de la Nueva Ciudad de Belén - Varillalito\nCUI: 2277384: Gestión del programa y otros',
         montos: [
-          { cui: '2300564', monto: 105987017.16, etapa1: 67170344.56, devengado2025: 42000000, pia2026: 18000000, pim2026: 22000000, devengadoMes: 9500000, avanceEjec: 45 },
-          { cui: '2300167', monto: 168291013.61, etapa1: 90701639.417, devengado2025: 55000000, pia2026: 24000000, pim2026: 29000000, devengadoMes: 11000000, avanceEjec: 38 },
-          { cui: '2307577', monto: 49187477.12, etapa1: 17918125.11, devengado2025: 9000000, pia2026: 6000000, pim2026: 7000000, devengadoMes: 1800000, avanceEjec: 22 },
-          { cui: '2277384', monto: 18648349.25, etapa1: 3225333.33, devengado2025: 4000000, pia2026: 2000000, pim2026: 2400000, devengadoMes: 600000, avanceEjec: 60 }
+          { cui: '2300564', monto: 105987017.16, devengado2025: 42000000, pia2026: 18000000, pim2026: 22000000, devengadoMes: 9500000, avanceEjec: 45 },
+          { cui: '2300167', monto: 168291013.61, devengado2025: 55000000, pia2026: 24000000, pim2026: 29000000, devengadoMes: 11000000, avanceEjec: 38 },
+          { cui: '2307577', monto: 49187477.12, devengado2025: 9000000, pia2026: 6000000, pim2026: 7000000, devengadoMes: 1800000, avanceEjec: 22 },
+          { cui: '2277384', monto: 18648349.25, devengado2025: 4000000, pia2026: 2000000, pim2026: 2400000, devengadoMes: 600000, avanceEjec: 60 }
         ] },
-      { id: 'DEMO-PROYECTO-2', programa: 'Proyecto de ejemplo 2 (solo demostración)', cui: '0000001', estructurantes: 'CUI: 0000001: Ejemplo', montos: [{ cui: '0000001', monto: 1000000, etapa1: 500000 }] },
-      { id: 'DEMO-PROYECTO-3', programa: 'Proyecto de ejemplo 3 (solo demostración)', cui: '0000002', estructurantes: 'CUI: 0000002: Ejemplo', montos: [{ cui: '0000002', monto: 2000000, etapa1: 900000 }] }
+      { id: 'DEMO-PROYECTO-2', programa: 'Proyecto de ejemplo 2 (solo demostración)', cui: '0000001', estructurantes: 'CUI: 0000001: Ejemplo', montos: [{ cui: '0000001', monto: 1000000 }] },
+      { id: 'DEMO-PROYECTO-3', programa: 'Proyecto de ejemplo 3 (solo demostración)', cui: '0000002', estructurantes: 'CUI: 0000002: Ejemplo', montos: [{ cui: '0000002', monto: 2000000 }] }
     ];
   },
   async call(action, p) {
@@ -316,13 +316,12 @@ function limpiarPunto() {
 
 /* -- presupuesto -- */
 function montoRow(m) {
-  m = m || { cui: '', monto: '', etapa1: '', devengado2025: '', pia2026: '', pim2026: '', devengadoMes: '', avanceEjec: '' };
+  m = m || { cui: '', monto: '', devengado2025: '', pia2026: '', pim2026: '', devengadoMes: '', avanceEjec: '' };
   const tr = document.createElement('tr');
   const money = (cls, val, label) => `<td><div class="money"><span>S/</span><input type="text" inputmode="decimal" class="${cls}" value="${val === '' ? '' : esc(fmtNum(val))}" placeholder="0.00" aria-label="${label}"></div></td>`;
   tr.innerHTML = `<td><input type="text" class="m-cui" value="${esc(m.cui)}" placeholder="Ej.: 2300564" aria-label="CUI"></td>` +
     money('m-monto', m.monto, 'Monto de inversión en soles') +
-    money('m-etapa', m.etapa1, 'Monto de la etapa 1 en soles') +
-    money('m-dev25', m.devengado2025, 'Monto devengado acumulado al 2025') +
+    money('m-dev25', m.devengado2025, 'Monto devengado acumulado al 2026') +
     money('m-pia', m.pia2026, 'PIA 2026') +
     money('m-pim', m.pim2026, 'PIM 2026') +
     money('m-devmes', m.devengadoMes, 'Devengado al mes anterior') +
@@ -338,15 +337,14 @@ function montoRow(m) {
 }
 function leerMontos() {
   return $$('#montosBody tr').map(tr => ({
-    cui: $('.m-cui', tr).value.trim(), monto: parseMoney($('.m-monto', tr).value), etapa1: parseMoney($('.m-etapa', tr).value),
+    cui: $('.m-cui', tr).value.trim(), monto: parseMoney($('.m-monto', tr).value),
     devengado2025: parseMoney($('.m-dev25', tr).value), pia2026: parseMoney($('.m-pia', tr).value), pim2026: parseMoney($('.m-pim', tr).value),
     devengadoMes: parseMoney($('.m-devmes', tr).value), avanceEjec: $('.m-avance', tr).value.trim()
-  })).filter(m => m.cui || m.monto || m.etapa1 || m.devengado2025 || m.pia2026 || m.pim2026 || m.devengadoMes || m.avanceEjec);
+  })).filter(m => m.cui || m.monto || m.devengado2025 || m.pia2026 || m.pim2026 || m.devengadoMes || m.avanceEjec);
 }
 function totales() {
   const ms = leerMontos();
   $('#totMonto').textContent = fmtMoney(ms.reduce((a, m) => a + m.monto, 0));
-  $('#totEtapa').textContent = fmtMoney(ms.reduce((a, m) => a + m.etapa1, 0));
   $('#totDev25').textContent = fmtMoney(ms.reduce((a, m) => a + m.devengado2025, 0));
   $('#totPia').textContent = fmtMoney(ms.reduce((a, m) => a + m.pia2026, 0));
   $('#totPim').textContent = fmtMoney(ms.reduce((a, m) => a + m.pim2026, 0));
@@ -613,13 +611,13 @@ function exportarExcel() {
   ws['!freeze'] = { xSplit: 0, ySplit: 1 };
   const montos = [];
   rows.forEach(r => (r.montos || []).forEach(m => montos.push({
-    'Semana': r.semana, 'Proyecto': r.proyectoId, 'CUI': m.cui, 'Monto de inversión (S/)': m.monto, 'Monto Etapa 1 (S/)': m.etapa1,
-    'Devengado acum. 2025 (S/)': m.devengado2025, 'PIA 2026 (S/)': m.pia2026, 'PIM 2026 (S/)': m.pim2026,
+    'Semana': r.semana, 'Proyecto': r.proyectoId, 'CUI': m.cui, 'Monto de inversión (S/)': m.monto,
+    'Devengado acum. 2026 (S/)': m.devengado2025, 'PIA 2026 (S/)': m.pia2026, 'PIM 2026 (S/)': m.pim2026,
     'Devengado mes anterior (S/)': m.devengadoMes, 'Avance %': m.avanceEjec
   })));
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Registros');
-  if (montos.length) { const w2 = XLSX.utils.json_to_sheet(montos); w2['!cols'] = [10, 22, 14, 24, 22, 22, 16, 16, 24, 11].map(w => ({ wch: w })); XLSX.utils.book_append_sheet(wb, w2, 'Montos'); }
+  if (montos.length) { const w2 = XLSX.utils.json_to_sheet(montos); w2['!cols'] = [10, 22, 14, 24, 22, 16, 16, 24, 11].map(w => ({ wch: w })); XLSX.utils.book_append_sheet(wb, w2, 'Montos'); }
   XLSX.writeFile(wb, `Registros_Avances_${hoy()}.xlsx`);
 }
 
@@ -653,12 +651,12 @@ function fichaPdf(r) {
   doc.setFontSize(12).text(`REPORTE DE AVANCE - SEMANA ${r.semana} (${weekRange(r.semana)})`, W / 2, 68, { align: 'center' });
   const sec = t => [{ content: t, colSpan: 2, styles: { fillColor: [87, 82, 78], textColor: 255, fontStyle: 'bold' } }];
   const montoLinea = m => [
-    `CUI ${m.cui}:  Monto ${fmtMoney(m.monto)}   |   Etapa 1 ${fmtMoney(m.etapa1)}`,
+    `CUI ${m.cui}:  Monto ${fmtMoney(m.monto)}`,
     (m.devengado2025 || m.pia2026 || m.pim2026 || m.devengadoMes || m.avanceEjec) ?
-      `   Devengado 2025 ${fmtMoney(m.devengado2025)}  |  PIA 2026 ${fmtMoney(m.pia2026)}  |  PIM 2026 ${fmtMoney(m.pim2026)}  |  Devengado mes anterior ${fmtMoney(m.devengadoMes)}  |  Avance ${m.avanceEjec || 0}%` : null
+      `   Devengado 2026 ${fmtMoney(m.devengado2025)}  |  PIA 2026 ${fmtMoney(m.pia2026)}  |  PIM 2026 ${fmtMoney(m.pim2026)}  |  Devengado mes anterior ${fmtMoney(m.devengadoMes)}  |  Avance ${m.avanceEjec || 0}%` : null
   ].filter(Boolean).join('\n');
   const montosTxt = (r.montos || []).map(montoLinea).concat(
-    r.montos && r.montos.length ? [`TOTAL:  ${fmtMoney(r.montos.reduce((a, m) => a + m.monto, 0))}   |   Etapa 1 ${fmtMoney(r.montos.reduce((a, m) => a + m.etapa1, 0))}`] : []).join('\n');
+    r.montos && r.montos.length ? [`TOTAL:  ${fmtMoney(r.montos.reduce((a, m) => a + m.monto, 0))}`] : []).join('\n');
   const body = [
     sec('1. DATOS GENERALES DEL PROYECTO O PROGRAMA'),
     ['Nombre del proyecto', r.programa], ['CUI / Cód. SNIP', r.cui], ['Estado del proyecto', r.estadoProyecto || '-'],
@@ -786,7 +784,7 @@ async function generarPptInterno(sem) {
     s.addText('PRESUPUESTO', { x, y, w, h: 0.3, fontSize: 10.5, bold: true, color: 'FFFFFF', fill: { color: COL.azul }, margin: [3, 6, 0, 9] });
     const dev = (ms || []).reduce((a, m) => a + (m.devengado2025 || 0), 0), pia = (ms || []).reduce((a, m) => a + (m.pia2026 || 0), 0), pim = (ms || []).reduce((a, m) => a + (m.pim2026 || 0), 0);
     if (!dev && !pia && !pim) { s.addShape(pptx.ShapeType.rect, { x, y: y + 0.3, w, h: h - 0.3, fill: { color: COL.claro } }); s.addText('Sin montos registrados.', { x: x + 0.1, y: y + 0.36, w: w - 0.2, h: h - 0.42, fontSize: 10, italic: true, color: COL.gris }); return; }
-    s.addChart(pptx.ChartType.bar, [{ name: 'Presupuesto (S/)', labels: ['Devengado 2025', 'PIA 2026', 'PIM 2026'], values: [dev, pia, pim] }],
+    s.addChart(pptx.ChartType.bar, [{ name: 'Presupuesto (S/)', labels: ['Devengado 2026', 'PIA 2026', 'PIM 2026'], values: [dev, pia, pim] }],
       { x, y: y + 0.34, w, h: h - 0.36, barDir: 'bar', chartColors: [COL.Verde, COL.Rojo, COL['Ámbar']], showValue: true, dataLabelFontSize: 7.5, dataLabelColor: '333333', dataLabelFormatCode: '0.0,,"M"', catAxisLabelFontSize: 8, valAxisHidden: true, showLegend: false, showTitle: false, barGapWidthPct: 35, valGridLine: { style: 'none' } });
   };
   const ubicacionBox = (s, x, y, w, h, r) => {
@@ -817,7 +815,7 @@ async function generarPptInterno(sem) {
   // Por proyecto: diapositiva A (formato oficial: cronograma/hitos, situación, riesgos, acciones, presupuesto, ubicación) + diapositiva B (detalle semanal)
   regs.forEach(r => {
     const ms = r.montos || [];
-    const totInv = ms.reduce((a, m) => a + (m.monto || 0), 0), totEtapa = ms.reduce((a, m) => a + (m.etapa1 || 0), 0);
+    const totInv = ms.reduce((a, m) => a + (m.monto || 0), 0);
     // -- Diapositiva A --
     let sl = pptx.addSlide();
     whiteHeader(sl);
@@ -826,8 +824,7 @@ async function generarPptInterno(sem) {
     if (r.estructurantes) sl.addText(trunc(r.estructurantes.replace(/\n+/g, '   ·   '), 170), { x: 0.32, y: 1.53, w: 8.6, h: 0.26, fontSize: 8.5, color: COL.gris, fontFace: 'Calibri' });
     else if (r.cui) sl.addText(`CUI ${r.cui}`, { x: 0.32, y: 1.53, w: 8.6, h: 0.26, fontSize: 8.5, color: COL.gris, fontFace: 'Calibri' });
     sl.addText([
-      { text: 'Inversión total: ', options: { color: COL.gris } }, { text: fmtMoney(totInv) + '   ', options: { bold: true, color: COL.rojo } },
-      { text: 'Etapa 1: ', options: { color: COL.gris } }, { text: fmtMoney(totEtapa), options: { bold: true, color: COL.rojo } }
+      { text: 'Inversión total: ', options: { color: COL.gris } }, { text: fmtMoney(totInv), options: { bold: true, color: COL.rojo } }
     ], { x: 0.32, y: 1.78, w: 8.6, h: 0.24, fontSize: 9.5, fontFace: 'Calibri' });
     sl.addText(String(r.porcentaje) + '%', { x: 10.9, y: 0.92, w: 2.1, h: 0.5, fontSize: 26, bold: true, align: 'right', color: COL[r.semaforo] || COL.gris });
     sl.addText(`${semaforoIcon(r.semaforo)} ${r.semaforo}`, { x: 10.9, y: 1.4, w: 2.1, h: 0.28, fontSize: 11, bold: true, align: 'right', color: COL[r.semaforo] || COL.gris });
