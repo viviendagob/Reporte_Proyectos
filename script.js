@@ -702,11 +702,18 @@ function datosSemana(sem) {
   const proy = state.catalogo.map(c => c.id);
   return { regs: regs.sort((a, b) => a.proyectoId.localeCompare(b.proyectoId)), pendientes: proy.filter(p => !regs.some(r => r.proyectoId === p)) };
 }
+async function esperarLibreria(nombre, intentos) {
+  for (let i = 0; i < intentos && typeof window[nombre] === 'undefined'; i++) await new Promise(r => setTimeout(r, 300));
+  return typeof window[nombre] !== 'undefined';
+}
 async function generarPpt() {
   const sem = $('#pSemana').value;
   if (!sem) return alert('No hay semanas con registros.');
   const btn = $('#btnPpt'); if (btn) { btn.disabled = true; btn.classList.add('loading'); }
   try {
+    if (typeof PptxGenJS === 'undefined' && !(await esperarLibreria('PptxGenJS', 10))) {
+      throw new Error('La librería para generar PowerPoint (PptxGenJS) no cargó en este navegador. Verifique su conexión a internet, que no haya un bloqueador de anuncios/extensión bloqueando cdnjs.cloudflare.com o cdn.jsdelivr.net, y vuelva a cargar la página (Ctrl/Cmd + Shift + R).');
+    }
     await generarPptInterno(sem);
   } catch (err) {
     console.error('Error al generar el PPT:', err);
