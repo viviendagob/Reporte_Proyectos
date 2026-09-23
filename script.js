@@ -694,6 +694,8 @@ function fichaPdf(r) {
 
 /* ---------- reporte PPT ---------- */
 const COL = { azul: '57524E', rojo: 'DC322D', gris: '52514E', claro: 'EEF2F8', Verde: '0A6B0A', 'Ámbar': '9A6A00', Rojo: 'A12525' };
+// Logo institucional (MVCS) incrustado en base64 -- tomado de la plantilla oficial de PPT, uso autorizado por el usuario.
+const LOGO_MVCS = 'data:image/png;base64,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';
 function fontFor(text, base) { const n = String(text || '').length; return n > 1000 ? base - 4 : n > 700 ? base - 3 : n > 450 ? base - 2 : n > 250 ? base - 1 : base; }
 function datosSemana(sem) {
   const regs = ultimosPorSemana(state.registros).filter(r => r.semana === sem);
@@ -705,19 +707,85 @@ function generarPpt() {
   if (!sem) return alert('No hay semanas con registros.');
   const { regs, pendientes } = datosSemana(sem);
   const pptx = new PptxGenJS(); pptx.layout = 'LAYOUT_WIDE'; pptx.title = 'Reporte general de avances ' + sem;
-  const W = 13.33;
-  const cab = (s, titulo, sub) => {
-    s.addShape(pptx.ShapeType.rect, { x: 0, y: 0, w: W, h: 0.9, fill: { color: COL.azul } });
-    s.addShape(pptx.ShapeType.rect, { x: 0, y: 0.9, w: W, h: 0.06, fill: { color: COL.rojo } });
-    s.addText(titulo, { x: 0.4, y: 0.08, w: W - 0.8, h: 0.5, fontSize: 20, bold: true, color: 'FFFFFF', fontFace: 'Calibri', fit: 'shrink' });
-    if (sub) s.addText(sub, { x: 0.4, y: 0.52, w: W - 0.8, h: 0.32, fontSize: 11, color: 'EDEAE4', fontFace: 'Calibri' });
-    s.addText('UIDUS - Programa Nuestras Ciudades · Semana ' + sem, { x: 0.4, y: 7.1, w: 8, h: 0.3, fontSize: 9, color: '777777' });
+  const W = 13.33, H = 7.5;
+  const bullets = txt => { const li = String(txt || '').split(/\n+/).map(t => t.trim()).filter(Boolean); return li.length ? li.map(t => ({ text: t, options: { bullet: { code: '25CF' }, breakLine: true, indentLevel: 0 } })) : [{ text: '—', options: {} }]; };
+  // encabezado blanco con logo institucional + franja roja (idéntico a la plantilla oficial del programa)
+  const whiteHeader = s => {
+    s.addShape(pptx.ShapeType.rect, { x: 0, y: 0, w: W, h: 0.82, fill: { color: 'FFFFFF' } });
+    if (window.CONFIG.LOGO_URL) s.addImage({ path: window.CONFIG.LOGO_URL, x: 0.32, y: 0.15, w: 2.05, h: 0.57 });
+    else s.addImage({ data: LOGO_MVCS, x: 0.32, y: 0.15, w: 2.05, h: 0.57 });
+    s.addShape(pptx.ShapeType.rect, { x: 0, y: 0.82, w: W, h: 0.05, fill: { color: COL.rojo } });
+  };
+  const footer = (s, texto) => s.addText(texto, { x: 0.32, y: H - 0.36, w: W - 3.2, h: 0.3, fontSize: 8.5, color: COL.gris, fontFace: 'Calibri' });
+  const cab = (s, titulo, sub, footTxt) => {
+    whiteHeader(s);
+    s.addText(titulo, { x: 2.55, y: 0.1, w: W - 2.9, h: 0.45, fontSize: 18, bold: true, color: COL.azul, fontFace: 'Calibri', fit: 'shrink' });
+    if (sub) s.addText(sub, { x: 2.55, y: 0.5, w: W - 2.9, h: 0.3, fontSize: 10.5, color: COL.gris, fontFace: 'Calibri' });
+    footer(s, footTxt || ('UIDUS · Programa Nuestras Ciudades · Semana ' + sem));
+  };
+  // gráfico de cronograma (gantt) dibujado a partir de los hitos reales del proyecto
+  const ganttDraw = (s, x, y, w, h, hitos) => {
+    const filas = (hitos || []).slice(0, 6);
+    if (!filas.length) { s.addText('Sin hitos programados para el 4.º semestre.', { x, y, w, h, fontSize: 10.5, italic: true, color: COL.gris, valign: 'middle', align: 'center' }); return; }
+    const conFechas = filas.filter(hh => hh.inicio && hh.fin);
+    let ini = conFechas.length ? new Date(Math.min(...conFechas.map(hh => +new Date(hh.inicio)))) : new Date(new Date().getFullYear(), 0, 1);
+    let fin = conFechas.length ? new Date(Math.max(...conFechas.map(hh => +new Date(hh.fin)))) : new Date(new Date().getFullYear(), 11, 31);
+    if (+fin <= +ini) fin = new Date(+ini + 30 * 86400000);
+    const total = Math.max(1, fin - ini);
+    const labelW = w * 0.32, barX = x + labelW, barW = w - labelW;
+    const rowH = Math.min(0.42, (h - 0.28) / filas.length);
+    const ticks = 4, corto = total < 90 * 86400000;
+    for (let i = 0; i <= ticks; i++) {
+      const t = new Date(+ini + (total * i / ticks));
+      const etq = corto ? `${pad(t.getDate())}/${pad(t.getMonth() + 1)}` : `${pad(t.getMonth() + 1)}/${String(t.getFullYear()).slice(2)}`;
+      s.addText(etq, { x: barX + barW * i / ticks - 0.35, y: y, w: 0.7, h: 0.22, fontSize: 7, align: 'center', color: COL.gris });
+      s.addShape(pptx.ShapeType.line, { x: barX + barW * i / ticks, y: y + 0.24, w: 0, h: rowH * filas.length, line: { color: 'DDDDDD', width: 0.5 } });
+    }
+    filas.forEach((hh, i) => {
+      const ry = y + 0.26 + i * rowH;
+      s.addText(trunc(hh.hito || '—', 50), { x, y: ry, w: labelW - 0.06, h: rowH, fontSize: 7.5, valign: 'middle', color: '222222', fontFace: 'Calibri' });
+      if (hh.inicio && hh.fin) {
+        const bi = new Date(hh.inicio), bf = new Date(hh.fin);
+        const bx = barX + barW * Math.max(0, (bi - ini)) / total;
+        const bw = Math.max(0.07, barW * Math.max(0, (bf - bi)) / total);
+        const av = Number(hh.avance) || 0;
+        const col = av >= 100 ? COL.Verde : av > 0 ? '2E6FCC' : '9AA0A6';
+        s.addShape(pptx.ShapeType.rect, { x: bx, y: ry + rowH * 0.16, w: bw, h: rowH * 0.68, fill: { color: col } });
+        if (bw > 0.35) s.addText(av + '%', { x: bx, y: ry + rowH * 0.16, w: bw, h: rowH * 0.68, fontSize: 6.5, color: 'FFFFFF', bold: true, align: 'center', valign: 'middle' });
+      }
+    });
+    if ((hitos || []).length > 6) s.addText(`+${hitos.length - 6} hito(s) adicional(es) — ver ficha PDF.`, { x, y: y + h - 0.2, w, h: 0.2, fontSize: 7, italic: true, color: COL.gris });
+  };
+  // caja con encabezado de color y cuerpo con viñetas (Situación actual, Riesgos, Acciones)
+  const box = (s, titulo, contenido, x, y, w, h, bullet) => {
+    s.addShape(pptx.ShapeType.rect, { x, y, w, h, fill: { color: COL.claro } });
+    s.addText(titulo, { x, y, w, h: 0.3, fontSize: 10.5, bold: true, color: 'FFFFFF', fill: { color: COL.azul }, margin: [3, 6, 0, 9] });
+    const opts = { x: x + 0.09, y: y + 0.36, w: w - 0.18, h: h - 0.42, fontSize: fontFor(contenido, bullet ? 10.5 : 11), valign: 'top', color: '222222', fontFace: 'Calibri', margin: [2, 4, 2, 4] };
+    if (bullet) s.addText(bullets(contenido), opts); else s.addText(trunc(contenido, 1200) || '—', opts);
+  };
+  // presupuesto: gráfico de barras nativo (editable en PowerPoint) a partir de los montos del proyecto
+  const presupuestoBox = (s, x, y, w, h, ms) => {
+    s.addText('PRESUPUESTO', { x, y, w, h: 0.3, fontSize: 10.5, bold: true, color: 'FFFFFF', fill: { color: COL.azul }, margin: [3, 6, 0, 9] });
+    const dev = (ms || []).reduce((a, m) => a + (m.devengado2025 || 0), 0), pia = (ms || []).reduce((a, m) => a + (m.pia2026 || 0), 0), pim = (ms || []).reduce((a, m) => a + (m.pim2026 || 0), 0);
+    if (!dev && !pia && !pim) { s.addShape(pptx.ShapeType.rect, { x, y: y + 0.3, w, h: h - 0.3, fill: { color: COL.claro } }); s.addText('Sin montos registrados.', { x: x + 0.1, y: y + 0.36, w: w - 0.2, h: h - 0.42, fontSize: 10, italic: true, color: COL.gris }); return; }
+    s.addChart(pptx.ChartType.bar, [{ name: 'Presupuesto (S/)', labels: ['Devengado 2025', 'PIA 2026', 'PIM 2026'], values: [dev, pia, pim] }],
+      { x, y: y + 0.34, w, h: h - 0.36, barDir: 'bar', chartColors: [COL.Verde, COL.Rojo, COL['Ámbar']], showValue: true, dataLabelFontSize: 7.5, dataLabelColor: '333333', dataLabelFormatCode: '0.0,,"M"', catAxisLabelFontSize: 8, valAxisHidden: true, showLegend: false, showTitle: false, barGapWidthPct: 35, valGridLine: { style: 'none' } });
+  };
+  const ubicacionBox = (s, x, y, w, h, r) => {
+    s.addShape(pptx.ShapeType.rect, { x, y, w, h, fill: { color: COL.claro } });
+    s.addText('UBICACIÓN', { x, y, w, h: 0.3, fontSize: 10.5, bold: true, color: 'FFFFFF', fill: { color: COL.azul }, margin: [3, 6, 0, 9] });
+    const lugar = [r.distrito, r.provincia, r.departamento].filter(Boolean).join(', ') || 'No especificada';
+    const coords = (r.lat !== undefined && r.lat !== '' && r.lat !== null) ? `Coordenadas: ${r.lat}, ${r.lng}` : '';
+    s.addText([{ text: lugar, options: { bold: true, breakLine: true, fontSize: 12 } }, { text: coords, options: { fontSize: 9, color: COL.gris } }], { x: x + 0.09, y: y + 0.36, w: w - 0.18, h: h - 0.42, valign: 'top', fontFace: 'Calibri', color: '222222' });
   };
   // Portada
   let s = pptx.addSlide(); s.background = { color: COL.rojo };
-  s.addText('REPORTE GENERAL DE AVANCES DE PROYECTOS', { x: 0.7, y: 2.2, w: W - 1.4, h: 1.2, fontSize: 36, bold: true, color: 'FFFFFF', fontFace: 'Calibri' });
-  s.addText(`Semana ${sem} (${weekRange(sem)})`, { x: 0.7, y: 3.5, w: W - 1.4, h: 0.6, fontSize: 22, color: 'EDEAE4' });
-  s.addText('Unidad de Inversiones en Desarrollo Urbano Sostenible - Programa Nuestras Ciudades', { x: 0.7, y: 4.3, w: W - 1.4, h: 0.5, fontSize: 16, color: 'EDEAE4' });
+  whiteHeader(s);
+  s.addText('REPORTE GENERAL DE AVANCES DE PROYECTOS', { x: 0.7, y: 2.3, w: W - 1.4, h: 1.1, fontSize: 34, bold: true, color: 'FFFFFF', fontFace: 'Calibri' });
+  s.addShape(pptx.ShapeType.line, { x: 0.72, y: 3.35, w: 5.0, h: 0, line: { color: 'FFFFFF', width: 1 } });
+  s.addText(`Semana ${sem} (${weekRange(sem)})`, { x: 0.7, y: 3.5, w: W - 1.4, h: 0.6, fontSize: 20, color: 'EDEAE4' });
+  s.addText(window.CONFIG.ENTIDAD || 'Unidad de Inversiones en Desarrollo Urbano Sostenible - Programa Nuestras Ciudades', { x: 0.7, y: 4.25, w: W - 1.4, h: 0.5, fontSize: 14, color: 'EDEAE4' });
+  s.addText(`${regs.length} de ${state.catalogo.length} proyecto(s) con reporte esta semana`, { x: 0.7, y: 6.7, w: W - 1.4, h: 0.4, fontSize: 12, color: 'FFFFFF' });
   // Resumen
   const chunk = 8;
   for (let i = 0; i < Math.max(regs.length, 1); i += chunk) {
@@ -726,33 +794,63 @@ function generarPpt() {
     const rows = regs.slice(i, i + chunk).map(r => [
       { text: r.proyectoId, options: { bold: true, fontSize: 11 } }, { text: r.porcentaje + '%', options: { align: 'center', fontSize: 12, bold: true } },
       { text: `${semaforoIcon(r.semaforo)} ${r.semaforo}`, options: { bold: true, color: COL[r.semaforo] || COL.gris, fontSize: 11 } }, { text: trunc(r.avance, 230), options: { fontSize: 10 } }]);
-    s.addTable([head].concat(rows.length ? rows : [[{ text: 'Sin reportes esta semana', options: { colspan: 4 } }]]), { x: 0.4, y: 1.15, w: W - 0.8, colW: [3, 1.2, 1.6, W - 0.8 - 5.8], border: { type: 'solid', color: 'CCCCCC', pt: 0.5 }, valign: 'top', fontFace: 'Calibri' });
+    s.addTable([head].concat(rows.length ? rows : [[{ text: 'Sin reportes esta semana', options: { colspan: 4 } }]]), { x: 0.4, y: 1.05, w: W - 0.8, colW: [3, 1.2, 1.6, W - 0.8 - 5.8], border: { type: 'solid', color: 'CCCCCC', pt: 0.5 }, valign: 'top', fontFace: 'Calibri' });
   }
-  // Por proyecto
+  // Por proyecto: diapositiva A (formato oficial: cronograma/hitos, situación, riesgos, acciones, presupuesto, ubicación) + diapositiva B (detalle semanal)
   regs.forEach(r => {
-    const chip = `${r.porcentaje}%  ·  ${semaforoIcon(r.semaforo)} ${r.semaforo}`;
-    const box = (s, titulo, texto, x, y, w, h, base) => {
-      s.addShape(pptx.ShapeType.rect, { x, y, w, h, fill: { color: 'FFFFFF' }, line: { color: 'CCCCCC', width: 0.75 } });
-      s.addText(titulo, { x, y, w, h: 0.34, fontSize: 12, bold: true, color: 'FFFFFF', fill: { color: COL.azul }, margin: [0, 8, 0, 8] });
-      s.addText(trunc(texto, 1300) || '—', { x: x + 0.05, y: y + 0.38, w: w - 0.1, h: h - 0.42, fontSize: fontFor(texto, base), valign: 'top', color: '222222', fontFace: 'Calibri', margin: [2, 6, 2, 6] });
+    const ms = r.montos || [];
+    const totInv = ms.reduce((a, m) => a + (m.monto || 0), 0), totEtapa = ms.reduce((a, m) => a + (m.etapa1 || 0), 0);
+    // -- Diapositiva A --
+    let sl = pptx.addSlide();
+    whiteHeader(sl);
+    sl.addText(r.proyectoId, { x: 0.32, y: 0.92, w: 8.6, h: 0.4, fontSize: 17, bold: true, color: COL.azul, fontFace: 'Calibri', fit: 'shrink' });
+    sl.addText(trunc(r.programa, 130), { x: 0.32, y: 1.28, w: 8.6, h: 0.28, fontSize: 10.5, color: COL.gris, fontFace: 'Calibri' });
+    if (r.estructurantes) sl.addText(trunc(r.estructurantes.replace(/\n+/g, '   ·   '), 170), { x: 0.32, y: 1.53, w: 8.6, h: 0.26, fontSize: 8.5, color: COL.gris, fontFace: 'Calibri' });
+    else if (r.cui) sl.addText(`CUI ${r.cui}`, { x: 0.32, y: 1.53, w: 8.6, h: 0.26, fontSize: 8.5, color: COL.gris, fontFace: 'Calibri' });
+    sl.addText([
+      { text: 'Inversión total: ', options: { color: COL.gris } }, { text: fmtMoney(totInv) + '   ', options: { bold: true, color: COL.rojo } },
+      { text: 'Etapa 1: ', options: { color: COL.gris } }, { text: fmtMoney(totEtapa), options: { bold: true, color: COL.rojo } }
+    ], { x: 0.32, y: 1.78, w: 8.6, h: 0.24, fontSize: 9.5, fontFace: 'Calibri' });
+    sl.addText(String(r.porcentaje) + '%', { x: 10.9, y: 0.92, w: 2.1, h: 0.5, fontSize: 26, bold: true, align: 'right', color: COL[r.semaforo] || COL.gris });
+    sl.addText(`${semaforoIcon(r.semaforo)} ${r.semaforo}`, { x: 10.9, y: 1.4, w: 2.1, h: 0.28, fontSize: 11, bold: true, align: 'right', color: COL[r.semaforo] || COL.gris });
+    sl.addShape(pptx.ShapeType.line, { x: 0.32, y: 2.05, w: W - 0.64, h: 0, line: { color: COL.rojo, width: 1 } });
+    // columna izquierda: cronograma / hitos
+    sl.addText('CRONOGRAMA 2026 E HITOS PRINCIPALES', { x: 0.32, y: 2.14, w: 7.85, h: 0.3, fontSize: 10.5, bold: true, color: 'FFFFFF', fill: { color: COL.azul }, margin: [3, 6, 0, 9] });
+    sl.addShape(pptx.ShapeType.rect, { x: 0.32, y: 2.46, w: 7.85, h: 2.58, fill: { color: 'FFFFFF' }, line: { color: 'DDDDDD', width: 0.75 } });
+    ganttDraw(sl, 0.42, 2.56, 7.65, 2.38, r.hitosSemestre);
+    box(sl, 'RIESGOS', r.riesgo, 0.32, 5.14, 3.85, 1.9, true);
+    box(sl, 'ACCIONES A SEGUIR Y/O MITIGACIÓN', r.medidas, 4.27, 5.14, 3.9, 1.9, true);
+    // columna derecha: situación, presupuesto, ubicación
+    box(sl, 'SITUACIÓN ACTUAL', r.estado, 8.27, 2.14, 4.74, 1.85, true);
+    presupuestoBox(sl, 8.27, 4.09, 4.74, 1.55, ms);
+    ubicacionBox(sl, 8.27, 5.74, 4.74, 1.3, r);
+    footer(sl, `UIDUS · Programa Nuestras Ciudades · Semana ${sem} · Registrado por ${r.usuario} el ${fmtFecha(r.fecha)}`);
+    // -- Diapositiva B: detalle semanal --
+    sl = pptx.addSlide(); cab(sl, r.proyectoId + ' — Detalle semanal', trunc(r.programa, 140), `Estado: ${r.estadoProyecto || '—'} · Ubicación: ${ubicacionTxt(r) || '—'} · Evidencias: ${linksOf(r.evidencia).length}`);
+    box(sl, 'AVANCE DE LA SEMANA', r.avance, 0.4, 1.05, W - 0.8, 1.15, false);
+    const tabla = (titulo, y, head, filas, colW) => {
+      sl.addText(titulo, { x: 0.4, y, w: W - 0.8, h: 0.28, fontSize: 11, bold: true, color: COL.azul, fontFace: 'Calibri' });
+      const hd = head.map(t => ({ text: t, options: { bold: true, color: 'FFFFFF', fill: { color: COL.azul }, fontSize: 9.5 } }));
+      const body = filas.length ? filas : [[{ text: 'Sin datos registrados esta semana', options: { colspan: head.length, italic: true, color: COL.gris } }]];
+      sl.addTable([hd].concat(body), { x: 0.4, y: y + 0.3, w: W - 0.8, colW, border: { type: 'solid', color: 'CCCCCC', pt: 0.5 }, valign: 'top', fontFace: 'Calibri', fontSize: 9 });
     };
-    let sl = pptx.addSlide(); cab(sl, r.proyectoId, trunc(r.programa, 150));
-    sl.addText(chip, { x: W - 3.6, y: 1.0, w: 3.2, h: 0.4, fontSize: 14, bold: true, align: 'right', color: COL[r.semaforo] || COL.gris });
-    box(sl, 'Avance semanal', r.avance, 0.4, 1.5, 6.2, 2.7, 13);
-    box(sl, 'Actividades programadas (semana)', fmtLista(r.actividadesSemana, actividadTxt), 0.4, 4.3, 6.2, 2.7, 13);
-    box(sl, 'Riesgo potencial', r.riesgo, 6.8, 1.5, 6.1, 2.7, 12);
-    box(sl, 'Medidas de mitigación', r.medidas, 6.8, 4.3, 6.1, 2.7, 12);
-    sl = pptx.addSlide(); cab(sl, r.proyectoId + ' - Situación y hitos', trunc(r.programa, 150));
-    box(sl, 'Estado situacional', r.estado, 0.4, 1.15, 6.2, 5.35, 12);
-    box(sl, 'Hitos programados 4.º semestre 2026', fmtLista(r.hitosSemestre, hitoTxt), 6.8, 1.15, 6.1, 5.35, 12);
-    const nEv = linksOf(r.evidencia).length;
-    sl.addText(`${r.estadoProyecto ? 'Estado: ' + r.estadoProyecto + '   ·   ' : ''}${ubicacionTxt(r) ? 'Ubicación: ' + [r.distrito, r.provincia, r.departamento].filter(Boolean).join(', ') + '   ·   ' : ''}Evidencias: ${nEv}   ·   Registrado por ${r.usuario} el ${fmtFecha(r.fecha)}`, { x: 0.4, y: 6.6, w: W - 0.8, h: 0.35, fontSize: 10, color: COL.gris });
+    const actFilas = (r.actividadesSemana || []).slice(0, 8).map((a, i) => [
+      { text: String(i + 1), options: { align: 'center' } }, { text: trunc(a.actividad, 90) }, { text: trunc(a.responsable, 40) }, { text: trunc(a.comentario, 90) }]);
+    tabla('Actividades programadas (semana)', 2.35, ['N°', 'Actividad', 'Responsable', 'Comentario'], actFilas, [0.5, 4.6, 2.3, 4.53]);
+    const avFilas = (r.avanceDetalle || []).slice(0, 8).map((v, i) => [
+      { text: String(i + 1), options: { align: 'center' } }, { text: trunc(v.actividad, 80) }, { text: trunc(v.cumplimiento, 60) }, { text: trunc(v.responsable, 35) }, { text: linksOf(v.evidencia).length ? linksOf(v.evidencia).length + ' archivo(s)' : '—' }]);
+    tabla('Avance semanal (detalle) — semana anterior', 4.75, ['N°', 'Actividad', 'Cumplimiento', 'Responsable', 'Evidencia'], avFilas, [0.45, 4.0, 3.3, 2.28, 1.9]);
   });
   // Pendientes
   if (pendientes.length) {
     s = pptx.addSlide(); cab(s, 'Proyectos sin reporte en la semana', `${pendientes.length} pendiente(s)`);
-    s.addText(pendientes.map(p => ({ text: p, options: { bullet: true, breakLine: true } })), { x: 0.6, y: 1.3, w: W - 1.2, h: 5.4, fontSize: 18, color: '222222', valign: 'top' });
+    s.addText(pendientes.map(p => ({ text: p, options: { bullet: true, breakLine: true } })), { x: 0.6, y: 1.2, w: W - 1.2, h: 5.6, fontSize: 18, color: '222222', valign: 'top' });
   }
+  // Cierre
+  s = pptx.addSlide(); s.background = { color: COL.rojo }; whiteHeader(s);
+  s.addText('Gracias.', { x: 0.7, y: 3.0, w: W - 1.4, h: 1.0, fontSize: 40, bold: true, color: 'FFFFFF', fontFace: 'Calibri' });
+  s.addText(window.CONFIG.ENTIDAD || 'Programa Nuestras Ciudades', { x: 0.7, y: 4.1, w: W - 1.4, h: 0.4, fontSize: 13, color: 'EDEAE4' });
+  s.addText(`Reporte generado el ${fmtFecha(new Date().toISOString())}`, { x: 0.7, y: 6.9, w: W - 1.4, h: 0.35, fontSize: 10, color: 'EDEAE4' });
   pptx.writeFile({ fileName: `Reporte_General_Avances_${sem}.pptx` });
   const info = $('#pptInfo'); info.classList.remove('hidden');
   info.textContent = `Presentación generada: ${regs.length} proyecto(s) con reporte, ${pendientes.length} sin reporte.`;
