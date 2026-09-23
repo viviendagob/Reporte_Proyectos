@@ -664,7 +664,7 @@ function fichaPdf(r) {
     ['Proyecto(s) estructurantes y de prioridad', r.estructurantes], ['Monto de inversión actualizado', montosTxt || '-'],
     sec('2. ESTADO SITUACIONAL DEL PROYECTO'), ['Estado situacional', r.estado || '-'],
     ['Avance semanal', `${r.avance}\n\nAvance: ${r.porcentaje}%   |   Semáforo: ${r.semaforo}`],
-    ['Evidencia', linksOf(r.evidencia).join('\n') || '-'], ['Riesgo potencial', r.riesgo || '-'], ['Medidas de mitigación', r.medidas || '-']
+    ['Riesgo potencial', r.riesgo || '-'], ['Medidas de mitigación', r.medidas || '-']
   ];
   doc.autoTable({ startY: 84, body, theme: 'grid', margin: { left: 40, right: 40, bottom: 34 }, styles: { fontSize: 8.5, cellPadding: 4, overflow: 'linebreak', valign: 'top', lineColor: [190, 190, 190] },
     columnStyles: { 0: { cellWidth: 125, fontStyle: 'bold', fillColor: [238, 242, 248] } } });
@@ -683,7 +683,12 @@ function fichaPdf(r) {
   y3 = tabla3('Actividades programadas de la semana', y3, ['N°', 'Actividad', 'Responsable', 'Comentario'],
     (r.actividadesSemana || []).map((a, i) => [i + 1, a.actividad || '-', a.responsable || '-', a.comentario || '-'])) + 12;
   y3 = tabla3('Avance semanal (detalle)', y3, ['N°', 'Actividad (semana anterior)', 'Cumplimiento / comentario', 'Responsable', 'Evidencia'],
-    (r.avanceDetalle || []).map((v, i) => [i + 1, v.actividad || '-', v.cumplimiento || '-', v.responsable || '-', v.evidencia || '-']));
+    (r.avanceDetalle || []).map((v, i) => [i + 1, v.actividad || '-', v.cumplimiento || '-', v.responsable || '-', v.evidencia || '-'])) + 14;
+  if (y3 > 680) { doc.addPage(); y3 = 40; }
+  doc.setFont('helvetica', 'bold').setFontSize(10.5).setTextColor(0).text('4. EVIDENCIA', 40, y3); y3 += 10;
+  const evLinks = linksOf(r.evidencia);
+  doc.autoTable({ startY: y3, body: [[evLinks.length ? evLinks.join('\n') : 'Sin evidencia adjunta.']], theme: 'grid', margin: { left: 40, right: 40, bottom: 34 },
+    styles: { fontSize: 8.5, cellPadding: 4, overflow: 'linebreak', valign: 'top', lineColor: [190, 190, 190] } });
   doc.setFontSize(8).setTextColor(120);
   doc.text(`Registrado por ${r.usuario} el ${fmtFecha(r.fecha)} - N.º ${r.id}`, 40, doc.lastAutoTable.finalY + 16);
   pieDePagina(doc);
