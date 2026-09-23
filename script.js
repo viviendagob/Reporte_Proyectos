@@ -702,9 +702,20 @@ function datosSemana(sem) {
   const proy = state.catalogo.map(c => c.id);
   return { regs: regs.sort((a, b) => a.proyectoId.localeCompare(b.proyectoId)), pendientes: proy.filter(p => !regs.some(r => r.proyectoId === p)) };
 }
-function generarPpt() {
+async function generarPpt() {
   const sem = $('#pSemana').value;
   if (!sem) return alert('No hay semanas con registros.');
+  const btn = $('#btnPpt'); if (btn) { btn.disabled = true; btn.classList.add('loading'); }
+  try {
+    await generarPptInterno(sem);
+  } catch (err) {
+    console.error('Error al generar el PPT:', err);
+    alert('No se pudo generar el PPT.\n\nDetalle: ' + (err && err.message ? err.message : err) + '\n\nAbra la consola del navegador (F12) para ver más detalle y envíe ese texto para revisarlo.');
+  } finally {
+    if (btn) { btn.disabled = false; btn.classList.remove('loading'); }
+  }
+}
+async function generarPptInterno(sem) {
   const { regs, pendientes } = datosSemana(sem);
   const pptx = new PptxGenJS(); pptx.layout = 'LAYOUT_WIDE'; pptx.title = 'Reporte general de avances ' + sem;
   const W = 13.33, H = 7.5;
@@ -851,7 +862,7 @@ function generarPpt() {
   s.addText('Gracias.', { x: 0.7, y: 3.0, w: W - 1.4, h: 1.0, fontSize: 40, bold: true, color: 'FFFFFF', fontFace: 'Calibri' });
   s.addText(window.CONFIG.ENTIDAD || 'Programa Nuestras Ciudades', { x: 0.7, y: 4.1, w: W - 1.4, h: 0.4, fontSize: 13, color: 'EDEAE4' });
   s.addText(`Reporte generado el ${fmtFecha(new Date().toISOString())}`, { x: 0.7, y: 6.9, w: W - 1.4, h: 0.35, fontSize: 10, color: 'EDEAE4' });
-  pptx.writeFile({ fileName: `Reporte_General_Avances_${sem}.pptx` });
+  await pptx.writeFile({ fileName: `Reporte_General_Avances_${sem}.pptx` });
   const info = $('#pptInfo'); info.classList.remove('hidden');
   info.textContent = `Presentación generada: ${regs.length} proyecto(s) con reporte, ${pendientes.length} sin reporte.`;
 }
