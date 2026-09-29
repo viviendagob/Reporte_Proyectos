@@ -7,7 +7,7 @@ const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const DEMO = !window.CONFIG.API_URL;
-const state = { usuario: '', token: '', sesion: null, catalogo: [], usuarios: [], registros: [], charts: {} };
+const state = { usuario: '', token: '', sesion: null, catalogo: [], usuarios: [], registros: [], charts: {}, fotos: {} };
 
 /* ---------- utilidades ---------- */
 const parseMoney = s => { const n = Number(String(s == null ? '' : s).replace(/[^\d.\-]/g, '')); return isFinite(n) ? n : 0; };
@@ -126,6 +126,7 @@ const Demo = {
       if (s.rol !== 'admin') return { ok: false, error: 'Solo el administrador puede eliminar' };
       db.registros = db.registros.filter(r => r.id !== p.id); this.persist(); return { ok: true };
     }
+    if (action === 'foto') return { ok: true, fotos: [] }; // no hay Drive real en modo demostración
     return { ok: false, error: 'Acción desconocida' };
   }
 };
@@ -655,11 +656,30 @@ function exportarPdf() {
   pieDePagina(doc);
   doc.save(`Listado_Avances_${hoy()}.pdf`);
 }
-function fichaPdf(r) {
+// Fotos referenciales del proyecto (para la Ficha PDF): las trae del Drive vía Apps Script (acción
+// "foto", ver Code.gs -> fotosProyecto_ — un proyecto puede tener varias, no solo una) y las deja en
+// caché en memoria para no volver a pedirlas cada vez que se genera el PDF del mismo proyecto en esta sesión.
+async function fotosProyecto(proyectoId) {
+  if (proyectoId in state.fotos) return state.fotos[proyectoId];
+  let fotos = [];
+  try { const r = await api('foto', { proyectoId }); if (r && r.ok) fotos = r.fotos || []; } catch (e) {}
+  state.fotos[proyectoId] = fotos;
+  return fotos;
+}
+function cargarImagen(dataUrl) {
+  return new Promise(resolve => { const img = new Image(); img.onload = () => resolve(img); img.onerror = () => resolve(null); img.src = dataUrl; });
+}
+// tamaño que ocupa la imagen dentro de una caja máxima, conservando su proporción (como "object-fit: contain")
+function encajarImagen(natW, natH, maxW, maxH) {
+  const esc = Math.min(maxW / natW, maxH / natH);
+  return { w: natW * esc, h: natH * esc };
+}
+async function fichaPdf(r) {
   const doc = nuevoPdf('portrait'), W = doc.internal.pageSize.getWidth();
   doc.setFont('helvetica', 'bold').setFontSize(10).setTextColor(0);
   doc.text(doc.splitTextToSize(window.CONFIG.ENTIDAD, W - 80), W / 2, 36, { align: 'center' });
   doc.setFontSize(12).text(`REPORTE DE AVANCE - SEMANA ${r.semana} (${weekRange(r.semana)})`, W / 2, 68, { align: 'center' });
+  const startY = 84;
   const sec = t => [{ content: t, colSpan: 2, styles: { fillColor: [87, 82, 78], textColor: 255, fontStyle: 'bold' } }];
   const montoLinea = m => [
     `CUI ${m.cui}:  Monto ${fmtMoney(m.monto)}`,
@@ -677,7 +697,7 @@ function fichaPdf(r) {
     ['Estado Situacional Específico', `${r.avance}\n\nAvance: ${r.porcentaje}%   |   Semáforo: ${r.semaforo}`],
     ['Riesgo potencial', r.riesgo || '-'], ['Medidas de mitigación', r.medidas || '-']
   ];
-  doc.autoTable({ startY: 84, body, theme: 'grid', margin: { left: 40, right: 40, bottom: 34 }, styles: { fontSize: 8.5, cellPadding: 4, overflow: 'linebreak', valign: 'top', lineColor: [190, 190, 190] },
+  doc.autoTable({ startY, body, theme: 'grid', margin: { left: 40, right: 40, bottom: 34 }, styles: { fontSize: 8.5, cellPadding: 4, overflow: 'linebreak', valign: 'top', lineColor: [190, 190, 190] },
     columnStyles: { 0: { cellWidth: 125, fontStyle: 'bold', fillColor: [238, 242, 248] } } });
   const tabla3 = (titulo, y, head, filas) => {
     doc.setFont('helvetica', 'bold').setFontSize(9.5).setTextColor(255).setFillColor(87, 82, 78).rect(40, y, W - 80, 16, 'F');
@@ -700,8 +720,32 @@ function fichaPdf(r) {
   const evLinks = linksOf(r.evidencia);
   doc.autoTable({ startY: y3, body: [[evLinks.length ? evLinks.join('\n') : 'Sin evidencia adjunta.']], theme: 'grid', margin: { left: 40, right: 40, bottom: 34 },
     styles: { fontSize: 8.5, cellPadding: 4, overflow: 'linebreak', valign: 'top', lineColor: [190, 190, 190] } });
+  let yFin = doc.lastAutoTable.finalY;
+  // fotos referenciales del proyecto (si tiene alguna cargada en su carpeta de Drive), en una
+  // cuadrícula al final de la sección de evidencia — un proyecto puede tener varias, no solo una.
+  const fotos = await fotosProyecto(r.proyectoId);
+  if (fotos && fotos.length) {
+    doc.setFont('helvetica', 'normal').setFontSize(7).setTextColor(140).text('Fotos referenciales del proyecto', 40, yFin + 12);
+    const cols = 2, gap = 14, boxW = 220, boxH = 160;
+    let col = 0, fy = yFin + 20;
+    for (const fotoUrl of fotos) {
+      try {
+        const img = await cargarImagen(fotoUrl);
+        if (!img || !img.naturalWidth || !img.naturalHeight) continue;
+        if (col === 0 && fy + boxH + 30 > 800) { doc.addPage(); fy = 40; }
+        const { w: iw, h: ih } = encajarImagen(img.naturalWidth, img.naturalHeight, boxW, boxH);
+        const ix = 40 + col * (boxW + gap);
+        const fmt = /image\/png/i.test(fotoUrl) ? 'PNG' : /image\/webp/i.test(fotoUrl) ? 'WEBP' : 'JPEG';
+        doc.addImage(fotoUrl, fmt, ix, fy, iw, ih);
+        doc.setDrawColor(200).setLineWidth(0.5).rect(ix, fy, iw, ih);
+        col++;
+        if (col >= cols) { col = 0; fy += boxH + gap; }
+      } catch (e) { console.error('No se pudo insertar una foto del proyecto en el PDF:', e); }
+    }
+    yFin = (col > 0 ? fy + boxH : fy - gap) + 10;
+  }
   doc.setFontSize(8).setTextColor(120);
-  doc.text(`Registrado por ${r.usuario} el ${fmtFecha(r.fecha)} - N.º ${r.id}`, 40, doc.lastAutoTable.finalY + 16);
+  doc.text(`Registrado por ${r.usuario} el ${fmtFecha(r.fecha)} - N.º ${r.id}`, 40, yFin + 16);
   pieDePagina(doc);
   doc.save(`Ficha_${r.proyectoId}_${r.semana}.pdf`);
 }
@@ -1081,11 +1125,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   $('#logoutBtn').onclick = () => { store.del('usuario'); store.del('token'); location.reload(); };
   ['#pjSemana', '#pjEstado'].forEach(x => $(x).addEventListener('change', renderProyectos));
   $('#pjBuscar').addEventListener('input', renderProyectos);
-  $('#projGrid').addEventListener('click', e => {
+  $('#projGrid').addEventListener('click', async e => {
     const b = e.target.closest('button[data-pact]'); if (!b) return;
     if (b.dataset.pact === 'hist') { $('#lProyecto').value = b.dataset.pid; $('#lSemana').value = ''; $('#lBuscar').value = ''; activarTab('list'); return; }
     const r = state.registros.find(x => String(x.id) === b.dataset.id); if (!r) return;
-    b.dataset.pact === 'ver' ? verRegistro(r) : fichaPdf(r);
+    b.dataset.pact === 'ver' ? verRegistro(r) : await fichaPdf(r);
   });
   $('#tabs').addEventListener('click', e => { const b = e.target.closest('button[data-tab]'); if (b) activarTab(b.dataset.tab); });
   $('#fProyecto').addEventListener('change', precargarProyecto);
@@ -1124,7 +1168,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const b = e.target.closest('button[data-act]'); if (!b) return;
     const r = state.registros.find(x => String(x.id) === b.dataset.id); if (!r) return;
     if (b.dataset.act === 'ver') verRegistro(r);
-    else if (b.dataset.act === 'ficha') fichaPdf(r);
+    else if (b.dataset.act === 'ficha') await fichaPdf(r);
     else if (b.dataset.act === 'del' && confirm('¿Eliminar este registro de forma permanente?')) { const x = await api('delete', { id: r.id }); if (x.ok) { await cargarRegistros(); renderLista(); } else alert(x.error); }
   });
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { if (!$('#tab-dash').classList.contains('hidden')) renderDashboard(); });
